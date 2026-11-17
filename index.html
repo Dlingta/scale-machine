@@ -598,6 +598,10 @@
         gap: 8px;
       }
 
+      .cta-row.is-apple-ar-primary {
+        flex-direction: row-reverse;
+      }
+
       .btn-ar-primary {
         flex: 1.4;
         display: inline-flex;
@@ -643,6 +647,42 @@
         font-weight: 600;
         cursor: pointer;
         white-space: nowrap;
+      }
+
+      .btn-quicklook.is-promoted {
+        flex: 1.45;
+        background: var(--accent-red);
+        color: #ffffff;
+        border: none;
+        font-size: 14px;
+      }
+
+      .btn-quicklook.is-promoted:hover:not(:disabled) {
+        background: var(--accent-red-hover);
+      }
+
+      .btn-quicklook.is-promoted:disabled {
+        background: #d4d4d4;
+        color: #888888;
+        opacity: 1;
+      }
+
+      .btn-ar-primary.is-secondary-mode {
+        flex: 1;
+        background: var(--bg-shell);
+        color: var(--text-main);
+        border: 1px solid var(--border-strong);
+        font-size: 13px;
+      }
+
+      .btn-ar-primary.is-secondary-mode:hover:not(:disabled) {
+        background: #f0f0f0;
+      }
+
+      .btn-ar-primary.is-secondary-mode:disabled {
+        background: var(--bg-shell);
+        color: var(--text-main);
+        opacity: 0.4;
       }
 
       .btn-quicklook:disabled {
@@ -1287,10 +1327,10 @@
 
             <label class="check-label">
               <input type="checkbox" id="includeScaleGuidesChk" checked />
-              <span>附带尺标与 1.70m 人高参照</span>
+              <span>附带尺标 · 1.7m人 · 2.1m门框</span>
             </label>
 
-            <div class="segmented-mini" role="group" aria-label="Quick Look 锚定方式">
+            <div class="segmented-mini" role="group" aria-label="苹果 AR 放置姿态">
               <button
                 type="button"
                 class="placement-btn is-active"
@@ -1298,15 +1338,34 @@
               >
                 地面立放
               </button>
+              <button type="button" class="placement-btn" data-placement="floorFlat">
+                地面平放
+              </button>
               <button type="button" class="placement-btn" data-placement="wall">
                 墙面贴挂
+              </button>
+            </div>
+
+            <div class="segmented-mini" role="group" aria-label="苹果 AR 透明度">
+              <button
+                type="button"
+                class="ar-opacity-btn is-active"
+                data-ar-opacity="1"
+              >
+                100%实色
+              </button>
+              <button type="button" class="ar-opacity-btn" data-ar-opacity="0.75">
+                75%半透
+              </button>
+              <button type="button" class="ar-opacity-btn" data-ar-opacity="0.5">
+                50%半透
               </button>
             </div>
           </div>
 
           <div id="envNotice" class="env-notice" role="status"></div>
 
-          <div class="cta-row">
+          <div class="cta-row" id="mainCtaRow">
             <button type="button" id="openCameraArBtn" class="btn-ar-primary" disabled>
               <span>实景 XYZ 轴定位 AR</span>
             </button>
@@ -1320,8 +1379,8 @@
             </button>
           </div>
 
-          <div class="panel-guideline">
-            「实景 XYZ 轴定位 AR」通过现实门/柜的原点 O 与 X/Y/Z 轴恢复真实地面与墙面透视，锁定后可将 1:1 作品放置在 XY、XZ 或 YZ 平面上查看，定格或视觉追踪均稳固不飘移。
+          <div class="panel-guideline" id="panelGuideline">
+            iPhone / iPad Safari 推荐使用「苹果原生 AR (1:1)」：调用系统 ARKit + LiDAR 自动锁定地面与墙面，免设轴且零抖动；桌面端、非 Safari 或需与门框精确叠图对比时，可使用「拍照定格 · XYZ 轴」。
           </div>
         </aside>
       </main>
@@ -1694,7 +1753,8 @@
           realHeightMeters: 0,
 
           includeScaleGuides: true,
-          arPlacement: 'floor',
+          arPlacement: 'floor', // 'floor' | 'floorFlat' | 'wall'
+          arOpacity: 1.0,
           gltfDataUri: '',
           gltfDirty: false,
           modelLoaded: false,
@@ -1729,7 +1789,9 @@
         const rectifyPerspChk = document.getElementById('rectifyPerspChk');
         const includeScaleGuidesChk = document.getElementById('includeScaleGuidesChk');
         const placementButtons = document.querySelectorAll('.placement-btn');
+        const arOpacityButtons = document.querySelectorAll('.ar-opacity-btn');
 
+        const mainCtaRow = document.getElementById('mainCtaRow');
         const openCameraArBtn = document.getElementById('openCameraArBtn');
         const viewInQuickLookBtn = document.getElementById('viewInQuickLookBtn');
         const envNotice = document.getElementById('envNotice');
@@ -1818,15 +1880,27 @@
             /CriOS|FxiOS|EdgiOS|OPiOS|MicroMessenger|QQ\/|Weibo|ByteLocale/i.test(
               ua
             );
+          const isIOSSafari = isIOS && !isInAppOrAltIOS;
 
           if (isInAppOrAltIOS) {
             envNotice.textContent =
-              '提示：当前非 Safari 浏览器，苹果 AR Quick Look 仅支持 Safari；可直接使用「实景设定基准轴 AR」。';
+              '提示：当前为 App 内置或非 Safari 浏览器，苹果原生 AR 需点右上角「在 Safari 中打开」；当前可先使用「拍照定格 · XYZ 轴」。';
+            envNotice.classList.add('is-visible');
+          } else if (isIOSSafari) {
+            mainCtaRow.classList.add('is-apple-ar-primary');
+            viewInQuickLookBtn.classList.add('is-promoted');
+            viewInQuickLookBtn.querySelector('span').textContent =
+              '启动苹果原生 AR (1:1)';
+            openCameraArBtn.classList.add('is-secondary-mode');
+            openCameraArBtn.querySelector('span').textContent =
+              '拍照定格 · XYZ轴';
+            envNotice.textContent =
+              '已就绪苹果 ARKit 通道：免设轴、零抖动、锁定 1:1 真实米制尺寸；如需按门框叠图对比，点左侧「拍照定格 · XYZ轴」。';
             envNotice.classList.add('is-visible');
           } else {
             envNotice.classList.remove('is-visible');
           }
-          return { isIOS, isInAppOrAltIOS };
+          return { isIOS, isInAppOrAltIOS, isIOSSafari };
         }
         const envInfo = detectAppleEnvironment();
 
@@ -3163,18 +3237,105 @@
           return cachedSilhouetteUrl;
         }
 
+        let cachedDoorPoleUrl = '';
+        function getDoorScalePoleTextureUrl() {
+          if (cachedDoorPoleUrl) return cachedDoorPoleUrl;
+          const c = document.createElement('canvas');
+          c.width = 256;
+          c.height = 1024;
+          const g = c.getContext('2d');
+          g.clearRect(0, 0, c.width, c.height);
+
+          // Vertical 2.10m reference bar (simulating standard doorframe height)
+          g.fillStyle = 'rgba(2, 132, 199, 0.88)';
+          g.fillRect(118, 60, 20, 964);
+          g.fillStyle = '#FFFFFF';
+          for (let i = 1; i < 7; i++) {
+            const y = 60 + (i / 7) * 964;
+            g.fillRect(110, y - 2, 36, 4);
+          }
+          g.fillStyle = '#0284C7';
+          g.fillRect(88, 60, 80, 10);
+          g.fillRect(88, 1014, 80, 10);
+
+          g.fillStyle = 'rgba(17,17,17,0.88)';
+          drawRoundedRectPath(g, 28, 6, 200, 44, 10);
+          g.fill();
+          g.fillStyle = '#FFFFFF';
+          g.font = '700 24px monospace';
+          g.textAlign = 'center';
+          g.textBaseline = 'middle';
+          g.fillText('门高 2.10 m', 128, 29);
+
+          cachedDoorPoleUrl = c.toDataURL('image/png');
+          return cachedDoorPoleUrl;
+        }
+
+        function bakeArtworkTextureWithOpacity(opacity) {
+          if (!state.activeTextureSource || opacity >= 0.99) {
+            return {
+              dataUrl: state.activeTextureDataUrl,
+              hasAlpha: state.activeHasAlpha,
+            };
+          }
+          const src = state.activeTextureSource;
+          const sw = src.naturalWidth || src.width;
+          const sh = src.naturalHeight || src.height;
+          const maxDim = 1024;
+          let tw = sw;
+          let th = sh;
+          if (Math.max(tw, th) > maxDim) {
+            const r = maxDim / Math.max(tw, th);
+            tw = Math.max(1, Math.round(tw * r));
+            th = Math.max(1, Math.round(th * r));
+          }
+          const c = document.createElement('canvas');
+          c.width = tw;
+          c.height = th;
+          const g = c.getContext('2d');
+          g.clearRect(0, 0, tw, th);
+          g.globalAlpha = Math.max(0.1, Math.min(1, opacity));
+          g.drawImage(src, 0, 0, tw, th);
+          return {
+            dataUrl: c.toDataURL('image/png'),
+            hasAlpha: true,
+          };
+        }
+
         function buildBillboardGltfDataUri(
           widthM,
           heightM,
           imageDataUri,
           hasAlpha,
-          includeGuides
+          includeGuides,
+          placementMode
         ) {
           const hw = widthM / 2;
-          const zBack = includeGuides ? -0.45 : 0;
+          const isFlat = placementMode === 'floorFlat';
+          const isWall = placementMode === 'wall';
+          const zBack = isWall ? 0 : includeGuides ? -0.45 : -0.35;
 
-          const meshesData = [
-            {
+          const meshesData = [];
+          if (isFlat) {
+            // Flat on the floor (XZ plane, y = 0.008m above shadow catcher, extending away from viewer)
+            const zFront = 0.0;
+            const zFar = -heightM;
+            meshesData.push({
+              name: 'AR_Billboard_1to1_FloorFlat',
+              positions: [
+                -hw, 0.008, zFront,
+                hw, 0.008, zFront,
+                hw, 0.008, zFar,
+                -hw, 0.008, zFar,
+              ],
+              normal: [0, 1, 0],
+              min: [-hw, 0.008, zFar],
+              max: [hw, 0.008, zFront],
+              imageUri: imageDataUri,
+              alphaMode: hasAlpha ? 'BLEND' : 'OPAQUE',
+            });
+          } else {
+            meshesData.push({
               name: 'AR_Billboard_1to1',
               positions: [
                 -hw, 0, zBack,
@@ -3182,27 +3343,31 @@
                 hw, heightM, zBack,
                 -hw, heightM, zBack,
               ],
+              normal: [0, 0, 1],
               min: [-hw, 0, zBack],
               max: [hw, heightM, zBack],
               imageUri: imageDataUri,
               alphaMode: hasAlpha ? 'BLEND' : 'OPAQUE',
-            },
-          ];
+            });
+          }
 
-          if (includeGuides) {
+          if (includeGuides && !isWall) {
             const matW = Math.max(0.8, widthM);
             const mhw = matW / 2;
             const matD = Math.min(0.42, Math.max(0.24, widthM * 0.14));
+            const rulerZ0 = isFlat ? 0.06 : zBack + 0.02;
+            const rulerZ1 = rulerZ0 + matD;
             meshesData.push({
               name: 'Floor_Scale_Ruler',
               positions: [
-                -mhw, 0.004, zBack + matD,
-                mhw, 0.004, zBack + matD,
-                mhw, 0.004, zBack + 0.02,
-                -mhw, 0.004, zBack + 0.02,
+                -mhw, 0.004, rulerZ1,
+                mhw, 0.004, rulerZ1,
+                mhw, 0.004, rulerZ0,
+                -mhw, 0.004, rulerZ0,
               ],
-              min: [-mhw, 0.004, zBack + 0.02],
-              max: [mhw, 0.004, zBack + matD],
+              normal: [0, 1, 0],
+              min: [-mhw, 0.004, rulerZ0],
+              max: [mhw, 0.004, rulerZ1],
               imageUri: generateRulerMatTexture(widthM, heightM),
               alphaMode: 'BLEND',
             });
@@ -3210,17 +3375,37 @@
             const silX = hw + 0.45;
             const silW = 0.56;
             const silH = 1.7;
+            const refZ = isFlat ? -0.15 : zBack + 0.05;
             meshesData.push({
               name: 'Human_Scale_170cm',
               positions: [
-                silX - silW / 2, 0, zBack + 0.05,
-                silX + silW / 2, 0, zBack + 0.05,
-                silX + silW / 2, silH, zBack + 0.05,
-                silX - silW / 2, silH, zBack + 0.05,
+                silX - silW / 2, 0, refZ,
+                silX + silW / 2, 0, refZ,
+                silX + silW / 2, silH, refZ,
+                silX - silW / 2, silH, refZ,
               ],
-              min: [silX - silW / 2, 0, zBack + 0.05],
-              max: [silX + silW / 2, silH, zBack + 0.05],
+              normal: [0, 0, 1],
+              min: [silX - silW / 2, 0, refZ],
+              max: [silX + silW / 2, silH, refZ],
               imageUri: getHumanSilhouetteTextureUrl(),
+              alphaMode: 'BLEND',
+            });
+
+            const doorX = -hw - 0.36;
+            const doorW = 0.52;
+            const doorH = 2.1;
+            meshesData.push({
+              name: 'Door_Scale_210cm',
+              positions: [
+                doorX - doorW / 2, 0, refZ,
+                doorX + doorW / 2, 0, refZ,
+                doorX + doorW / 2, doorH, refZ,
+                doorX - doorW / 2, doorH, refZ,
+              ],
+              normal: [0, 0, 1],
+              min: [doorX - doorW / 2, 0, refZ],
+              max: [doorX + doorW / 2, doorH, refZ],
+              imageUri: getDoorScalePoleTextureUrl(),
               alphaMode: 'BLEND',
             });
           }
@@ -3243,9 +3428,13 @@
             const byteBase = idx * bytesPerQuad;
             const fBase = byteBase / 4;
             const uBase = byteBase / 2;
+            const n = m.normal || [0, 0, 1];
 
             f32.set(m.positions, fBase);
-            f32.set([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], fBase + 12);
+            f32.set(
+              [n[0], n[1], n[2], n[0], n[1], n[2], n[0], n[1], n[2], n[0], n[1], n[2]],
+              fBase + 12
+            );
             f32.set([0, 1, 1, 1, 1, 0, 0, 0], fBase + 24);
             u16.set([0, 1, 2, 0, 2, 3], uBase + 64);
 
@@ -3347,20 +3536,31 @@
 
           state.modelLoaded = false;
           state.gltfDirty = false;
+          const baked = bakeArtworkTextureWithOpacity(state.arOpacity);
+          const mvPlacement = state.arPlacement === 'wall' ? 'wall' : 'floor';
           const useFloorGuides =
-            state.includeScaleGuides && state.arPlacement === 'floor';
+            state.includeScaleGuides && mvPlacement === 'floor';
           state.gltfDataUri = buildBillboardGltfDataUri(
             state.realWidthMeters,
             state.realHeightMeters,
-            state.activeTextureDataUrl,
-            state.activeHasAlpha,
-            useFloorGuides
+            baked.dataUrl,
+            baked.hasAlpha,
+            useFloorGuides,
+            state.arPlacement
           );
 
-          modelViewer.setAttribute('ar-placement', state.arPlacement);
+          modelViewer.setAttribute('ar-placement', mvPlacement);
           modelViewer.setAttribute('src', state.gltfDataUri);
+          const modeTxt =
+            state.arPlacement === 'floorFlat'
+              ? '地面平放'
+              : state.arPlacement === 'wall'
+              ? '墙面贴挂'
+              : '地面立放';
           arModalTitle.textContent =
             '1:1 空间展板预览（' +
+            modeTxt +
+            ' · ' +
             state.realWidthMeters.toFixed(2) +
             ' × ' +
             state.realHeightMeters.toFixed(2) +
@@ -3376,14 +3576,14 @@
           const arCapable = Boolean(modelViewer.canActivateAR);
           modalActivateArBtn.disabled = !arCapable;
           if (arCapable) {
-            modalActivateArBtn.textContent = '启动苹果 AR / WebXR';
+            modalActivateArBtn.textContent = '启动苹果原生 AR (1:1)';
             arModalNote.textContent = envInfo.isIOS
-              ? '展板已自动后退 45cm 方便看全景：进入苹果 AR Quick Look 后扫描地面轻点即可锁定位置。'
+              ? '已锁定 1:1 真实米数（含 1.7m 人高与 2.1m 门高参考杆）：进入苹果 AR 后扫一下地面轻点即可稳固落地。'
               : '点击启动 WebXR / AR 实景查看，将展板按 1:1 尺寸锚定在地面或墙面。';
           } else {
             modalActivateArBtn.textContent = '当前浏览器不支持 Quick Look';
             arModalNote.textContent = envInfo.isInAppOrAltIOS
-              ? '请点击右上角「在 Safari 中打开」以启用苹果 AR Quick Look，或使用「实景设定基准轴 AR」。'
+              ? '请点击右上角「在 Safari 中打开」即可启用无抖动苹果原生 AR；或返回使用「拍照定格 · XYZ 轴」。'
               : '桌面端可在此旋转检查 3D 展板（若滑偏可点右上角「归位视角」）。';
           }
         }
@@ -6528,7 +6728,19 @@
             placementButtons.forEach((b) =>
               b.classList.toggle('is-active', b === btn)
             );
-            modelViewer.setAttribute('ar-placement', state.arPlacement);
+            const mvPlacement = state.arPlacement === 'wall' ? 'wall' : 'floor';
+            modelViewer.setAttribute('ar-placement', mvPlacement);
+            state.gltfDirty = true;
+            recalculateScaleAndModel(true);
+          });
+        });
+
+        arOpacityButtons.forEach((btn) => {
+          btn.addEventListener('click', function () {
+            state.arOpacity = parseFloat(btn.dataset.arOpacity) || 1.0;
+            arOpacityButtons.forEach((b) =>
+              b.classList.toggle('is-active', b === btn)
+            );
             state.gltfDirty = true;
             recalculateScaleAndModel(true);
           });
@@ -6566,8 +6778,10 @@
           if (state.gltfDirty || !state.gltfDataUri) {
             clearTimeout(inputDebounceTimer);
             recalculateScaleAndModel(true);
+            open3dPreviewModal();
+            return;
           }
-          if (modelViewer.canActivateAR) {
+          if (state.modelLoaded && modelViewer.canActivateAR) {
             try {
               modelViewer.activateAR();
             } catch (_) {
