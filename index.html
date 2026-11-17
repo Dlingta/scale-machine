@@ -1219,7 +1219,7 @@
               </div>
               <h2 class="upload-title">导入 2D 展陈渲染图</h2>
               <p class="upload-subtitle">
-                第一步在渲染图上标出已知高度；第二步进入实景后先对齐门/柜的「底角 O + X/Y/Z 三轴」建立立体地面基准，锁定后 1:1 作品即稳固站在真实地面与门/柜旁。
+                第一步在渲染图上标出已知高度；第二步进入实景后先对齐门/柜的「原点 O + X/Y/Z 轴」建立立体地面基准，锁定后可将 1:1 作品放在 XY、XZ 或 YZ 平面上查看。
               </p>
               <div class="upload-actions">
                 <button type="button" id="uploadTriggerBtn" class="btn-solid-dark">
@@ -1305,7 +1305,7 @@
 
           <div class="cta-row">
             <button type="button" id="openCameraArBtn" class="btn-ar-primary" disabled>
-              <span>实景三轴定位 AR</span>
+              <span>实景 XYZ 轴定位 AR</span>
             </button>
             <button
               type="button"
@@ -1318,7 +1318,7 @@
           </div>
 
           <div class="panel-guideline">
-            「实景三轴定位 AR」通过现实门/柜的底角与 X/Y/Z 三条立体边恢复真实地面与墙面透视，锁定后 1:1 作品贴地站立在门/柜旁，配合陀螺仪不随手机飘移。
+            「实景 XYZ 轴定位 AR」通过现实门/柜的原点 O 与 X/Y/Z 轴恢复真实地面与墙面透视，锁定后可将 1:1 作品放置在 XY、XZ 或 YZ 平面上查看，定格或视觉追踪均稳固不飘移。
           </div>
         </aside>
       </main>
@@ -1330,7 +1330,7 @@
     <section
       id="cameraArOverlay"
       class="camera-ar-overlay"
-      aria-label="实景基准轴 AR 界面"
+      aria-label="实景 XYZ 轴 AR 界面"
     >
       <div class="cam-topbar">
         <button type="button" id="camCloseBtn" class="cam-btn">返回</button>
@@ -1341,7 +1341,7 @@
             class="cam-mode-btn is-active"
             data-cam-mode="triadRef"
           >
-            三轴立体定位
+            XYZ 轴定位
           </button>
           <button type="button" class="cam-mode-btn" data-cam-mode="floorQuad">
             地面 4 点框
@@ -1361,7 +1361,7 @@
         <canvas id="arUiCanvas"></canvas>
 
         <div class="cam-banner-hint" id="camBannerHint">
-          第1步：将底角 O 对准门/柜着地角，对齐 Y(高)、X(横边)、Z(纵深) 三轴
+          第0步：将门/柜底角与地面收入画面，点击下方「定格拍照」后再设 XYZ 轴
         </div>
 
         <div class="cam-floating-actions">
@@ -1371,13 +1371,13 @@
             class="cam-floating-btn"
             hidden
           >
-            一键归位到轴旁
+            一键归位到原点 O
           </button>
         </div>
 
         <div class="cam-fallback-card" id="camFallbackCard">
           <p>
-            未检测到可用后置摄像头或相机权限未开启。您可以加载示例展厅实拍底图，或从手机相册选择现场照片进行三轴立体定位。
+            未检测到可用后置摄像头或相机权限未开启。您可以加载示例展厅实拍底图，或从手机相册选择现场照片进行 XYZ 轴立体定位。
           </p>
           <button type="button" id="camUseSampleBgBtn" class="btn-ar-primary">
             加载示例展厅实拍图（含 2.10m 门框与地砖）
@@ -1389,8 +1389,23 @@
       </div>
 
       <div class="cam-controls-dock">
-        <!-- Step 1 Dock: Set Reference Axis / Floor Quad before locking -->
-        <div class="cam-subpanel" id="stepSetAxisPanel">
+        <!-- Step 0 Dock: Frame live scene and capture still snapshot -->
+        <div class="cam-subpanel" id="stepAimPanel" hidden>
+          <div class="cam-row">
+            <span style="font-size: 12px; color: rgba(255, 255, 255, 0.82)">
+              先拍照定格再设置 XYZ 轴，可彻底避免手抖偏移
+            </span>
+            <button type="button" id="aimUploadPhotoBtn" class="cam-btn">
+              选相册照片
+            </button>
+          </div>
+          <button type="button" id="captureFreezeBtn" class="btn-lock-axis">
+            定格当前画面 · 开始在照片上设 XYZ 轴
+          </button>
+        </div>
+
+        <!-- Step 1 Dock: Set 3-Axis Triad / Floor Quad on frozen photo -->
+        <div class="cam-subpanel" id="stepSetAxisPanel" hidden>
           <div class="cam-row" id="axisRefRow">
             <div class="cam-quad-inputs">
               <span>Y轴高</span>
@@ -1476,31 +1491,34 @@
           </div>
 
           <button type="button" id="lockAxisBtn" class="btn-lock-axis">
-            锁定三轴基准 · 在旁放置 1:1 作品
+            锁定 XYZ 轴基准 · 放置 1:1 作品
           </button>
         </div>
 
-        <!-- Step 2 Dock: World-Locked Artwork Inspection & Side Placement -->
+        <!-- Step 2 Dock: World-Locked Artwork Inspection & Plane Placement -->
         <div class="cam-subpanel" id="stepPlacedPanel" hidden>
           <div class="cam-row">
             <div class="cam-presets">
-              <button type="button" class="cam-chip side-btn" data-side="left">
-                放轴左侧
+              <button type="button" class="cam-chip plane-btn is-active" data-plane="XY">
+                XY 平面
               </button>
-              <button type="button" class="cam-chip side-btn" data-side="center">
-                居中对齐轴
+              <button type="button" class="cam-chip plane-btn" data-plane="XZ">
+                XZ 平面
               </button>
-              <button type="button" class="cam-chip side-btn is-active" data-side="right">
-                放轴右侧
+              <button type="button" class="cam-chip plane-btn" data-plane="YZ">
+                YZ 平面
               </button>
             </div>
 
-            <div style="display: flex; gap: 6px">
+            <div style="display: flex; gap: 5px">
+              <button type="button" id="camLiveTrackToggleBtn" class="cam-btn" hidden>
+                开启实时追踪
+              </button>
               <button type="button" id="unlockAxisBtn" class="cam-btn">
-                重设三轴
+                重设 XYZ 轴
               </button>
               <button type="button" id="camToggleGuidesBtn" class="cam-btn is-active">
-                基准三轴
+                XYZ 轴
               </button>
               <button type="button" id="camSnapshotBtn" class="cam-btn">保存</button>
             </div>
@@ -1521,7 +1539,7 @@
             </label>
 
             <label class="cam-slider-wrap">
-              <span>前后距</span>
+              <span id="camNormalAxisLabel">Z 偏移</span>
               <input
                 id="camDepthSlider"
                 type="range"
@@ -1549,9 +1567,9 @@
             <div style="display: flex; align-items: center; justify-content: flex-end">
               <span
                 id="gyroStatusText"
-                style="font-size: 11px; color: rgba(255, 255, 255, 0.65)"
+                style="font-size: 11px; color: rgba(255, 255, 255, 0.7)"
               >
-                空间锁定中
+                定格零晃动
               </span>
             </div>
           </div>
@@ -1725,13 +1743,18 @@
         const arUiCtx = arUiCanvas.getContext('2d');
 
         const camModeBtns = document.querySelectorAll('.cam-mode-btn');
+        const stepAimPanel = document.getElementById('stepAimPanel');
+        const captureFreezeBtn = document.getElementById('captureFreezeBtn');
+        const aimUploadPhotoBtn = document.getElementById('aimUploadPhotoBtn');
         const stepSetAxisPanel = document.getElementById('stepSetAxisPanel');
         const stepPlacedPanel = document.getElementById('stepPlacedPanel');
         const axisRefRow = document.getElementById('axisRefRow');
         const floorQuadRow = document.getElementById('floorQuadRow');
         const lockAxisBtn = document.getElementById('lockAxisBtn');
         const unlockAxisBtn = document.getElementById('unlockAxisBtn');
-        const sideBtns = document.querySelectorAll('.side-btn');
+        const camLiveTrackToggleBtn = document.getElementById('camLiveTrackToggleBtn');
+        const planeBtns = document.querySelectorAll('.plane-btn');
+        const camNormalAxisLabel = document.getElementById('camNormalAxisLabel');
         const gyroStatusText = document.getElementById('gyroStatusText');
 
         const camCloseBtn = document.getElementById('camCloseBtn');
@@ -3357,11 +3380,13 @@
         const camState = {
           isOpen: false,
           mode: 'triadRef', // 'triadRef' | 'floorQuad'
-          step: 'setAxis', // 'setAxis' | 'placed'
+          step: 'aim', // 'aim' | 'setAxis' | 'placed'
           stream: null,
           rafId: null,
           isFrozen: false,
           bgImage: null,
+          frozenSnapshotGyro: null,
+          frozenSnapshotCanvas: null,
           cssW: 1,
           cssH: 1,
           dpr: 1,
@@ -3385,18 +3410,19 @@
           quadWidthM: 1.0,
           quadDepthM: 1.0,
 
-          // Locked anchor pose captured when user clicks "锁定三轴基准"
+          // Locked anchor pose captured when user clicks "锁定 XYZ 轴基准"
           lockedAnchorPose: null,
-          sideAlignment: 'right', // 'left' | 'center' | 'right'
+          activePlane: 'XY', // 'XY' | 'XZ' | 'YZ'
 
-          // Artwork offset relative to locked corner origin O (in meters, y = 0 floor)
+          // Artwork origin offset relative to locked XYZ origin O (in meters)
           offsetX: 0,
+          offsetY: 0.0,
           offsetZ: 0.0,
           headingDeg: 0,
           opacity: 0.82,
           showGuides: true,
 
-          // Current frame pose (transformed by gyro R_rel when live & placed)
+          // Current frame pose (transformed by visual tracker / gyro when live & placed)
           pose: null,
 
           dragTarget: null,
@@ -3407,6 +3433,473 @@
           dragStartFloor: null,
           dragStartCss: null,
         };
+
+        // =====================================================================
+        // 8b. Real-Time Visual Object Anchor Tracker (NCC + SO(3) Ray Alignment)
+        // =====================================================================
+        const visualTracker = {
+          W: 224,
+          H: 168,
+          canvas: null,
+          ctx: null,
+          anchors: [], // { rx, ry, rxNorm, ryNorm, patch, cPatch, lastX, lastY }
+          matchedPoints: [], // css coords of currently matched anchors
+          lastR: [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+          ],
+          lastScale: 1.0,
+          avgShift: { dx: 0, dy: 0 },
+          matchedCount: 0,
+          confidence: 0,
+        };
+
+        function captureTrackingGrayFrame() {
+          const W = 224;
+          const H = Math.max(
+            120,
+            Math.min(340, Math.round((W * camState.cssH) / Math.max(1, camState.cssW)))
+          );
+          if (!visualTracker.canvas) {
+            visualTracker.canvas = document.createElement('canvas');
+            visualTracker.ctx = visualTracker.canvas.getContext('2d', {
+              willReadFrequently: true,
+            });
+          }
+          if (visualTracker.W !== W || visualTracker.H !== H) {
+            visualTracker.W = W;
+            visualTracker.H = H;
+            visualTracker.canvas.width = W;
+            visualTracker.canvas.height = H;
+          }
+          visualTracker.ctx.drawImage(arBgCanvas, 0, 0, W, H);
+          const data = visualTracker.ctx.getImageData(0, 0, W, H).data;
+          const gray = new Uint8Array(W * H);
+          for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+            gray[i] = (77 * data[p] + 150 * data[p + 1] + 29 * data[p + 2]) >> 8;
+          }
+          return gray;
+        }
+
+        function extractNormalizedPatch(gray, W, H, cx, cy) {
+          const R = 4;
+          const size = 81;
+          const raw = new Float32Array(size);
+          let sum = 0;
+          let idx = 0;
+          for (let dy = -R; dy <= R; dy++) {
+            const row = (cy + dy) * W;
+            for (let dx = -R; dx <= R; dx++) {
+              const v = gray[row + cx + dx];
+              raw[idx++] = v;
+              sum += v;
+            }
+          }
+          const mean = sum / size;
+          let sq = 0;
+          for (let i = 0; i < size; i++) {
+            raw[i] -= mean;
+            sq += raw[i] * raw[i];
+          }
+          const denom = Math.sqrt(sq);
+          if (denom < 75) return null;
+          for (let i = 0; i < size; i++) raw[i] /= denom;
+
+          // Coarse strided 25-pixel patch (every 2nd pixel in 9x9)
+          const cPatch = new Float32Array(25);
+          let cSum = 0;
+          let cIdx = 0;
+          for (let dy = -R; dy <= R; dy += 2) {
+            const rOff = (dy + R) * 9;
+            for (let dx = -R; dx <= R; dx += 2) {
+              const v = gray[(cy + dy) * W + cx + dx];
+              cPatch[cIdx++] = v;
+              cSum += v;
+            }
+          }
+          const cMean = cSum / 25;
+          let cSq = 0;
+          for (let i = 0; i < 25; i++) {
+            cPatch[i] -= cMean;
+            cSq += cPatch[i] * cPatch[i];
+          }
+          const cDenom = Math.sqrt(cSq);
+          if (cDenom < 35) return null;
+          for (let i = 0; i < 25; i++) cPatch[i] /= cDenom;
+
+          return { patch: raw, cPatch };
+        }
+
+        function initVisualAnchorsFromBg() {
+          const gray = captureTrackingGrayFrame();
+          const W = visualTracker.W;
+          const H = visualTracker.H;
+          const margin = 10;
+
+          // Score corners across 3x3 spatial buckets so anchors span the whole static scene
+          const buckets = Array.from({ length: 9 }, () => []);
+          for (let y = margin; y < H - margin; y += 3) {
+            for (let x = margin; x < W - margin; x += 3) {
+              const gx = Math.abs(gray[y * W + (x + 2)] - gray[y * W + (x - 2)]);
+              const gy = Math.abs(gray[(y + 2) * W + x] - gray[(y - 2) * W + x]);
+              const gd1 = Math.abs(
+                gray[(y + 2) * W + (x + 2)] - gray[(y - 2) * W + (x - 2)]
+              );
+              const gd2 = Math.abs(
+                gray[(y + 2) * W + (x - 2)] - gray[(y - 2) * W + (x + 2)]
+              );
+              const score = Math.min(gx, gy) + 0.5 * Math.min(gd1, gd2);
+              if (score < 14) continue;
+              const bx = Math.min(2, Math.floor((x / W) * 3));
+              const by = Math.min(2, Math.floor((y / H) * 3));
+              buckets[by * 3 + bx].push({ x, y, score });
+            }
+          }
+
+          const candidates = [];
+          buckets.forEach((b) => {
+            b.sort((a, c) => c.score - a.score);
+            for (let i = 0; i < Math.min(3, b.length); i++) {
+              candidates.push(b[i]);
+            }
+          });
+          candidates.sort((a, b) => b.score - a.score);
+
+          const chosen = [];
+          for (let i = 0; i < candidates.length && chosen.length < 10; i++) {
+            const c = candidates[i];
+            let tooClose = false;
+            for (let j = 0; j < chosen.length; j++) {
+              if (Math.hypot(c.x - chosen[j].rx, c.y - chosen[j].ry) < 20) {
+                tooClose = true;
+                break;
+              }
+            }
+            if (tooClose) continue;
+            const pData = extractNormalizedPatch(gray, W, H, c.x, c.y);
+            if (!pData) continue;
+            chosen.push({
+              rx: c.x,
+              ry: c.y,
+              rxNorm: c.x / W,
+              ryNorm: c.y / H,
+              lastX: c.x,
+              lastY: c.y,
+              patch: pData.patch,
+              cPatch: pData.cPatch,
+            });
+          }
+
+          visualTracker.anchors = chosen;
+          visualTracker.matchedPoints = [];
+          visualTracker.lastR = [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+          ];
+          visualTracker.lastScale = 1.0;
+          visualTracker.avgShift = { dx: 0, dy: 0 };
+          visualTracker.matchedCount = chosen.length;
+          visualTracker.confidence = chosen.length >= 4 ? 1 : 0;
+        }
+
+        function nccCoarse(gray, W, cx, cy, cPatch) {
+          let sumQ = 0;
+          let sumQ2 = 0;
+          let dotPQ = 0;
+          let k = 0;
+          for (let dy = -4; dy <= 4; dy += 2) {
+            const row = (cy + dy) * W;
+            for (let dx = -4; dx <= 4; dx += 2) {
+              const q = gray[row + cx + dx];
+              sumQ += q;
+              sumQ2 += q * q;
+              dotPQ += cPatch[k++] * q;
+            }
+          }
+          const varQ = sumQ2 - (sumQ * sumQ) / 25;
+          if (varQ < 600) return -1;
+          return dotPQ / Math.sqrt(varQ);
+        }
+
+        function nccFine(gray, W, cx, cy, patch) {
+          let sumQ = 0;
+          let sumQ2 = 0;
+          let dotPQ = 0;
+          let k = 0;
+          for (let dy = -4; dy <= 4; dy++) {
+            const row = (cy + dy) * W;
+            for (let dx = -4; dx <= 4; dx++) {
+              const q = gray[row + cx + dx];
+              sumQ += q;
+              sumQ2 += q * q;
+              dotPQ += patch[k++] * q;
+            }
+          }
+          const varQ = sumQ2 - (sumQ * sumQ) / 81;
+          if (varQ < 2000) return -1;
+          return dotPQ / Math.sqrt(varQ);
+        }
+
+        function rodriguesMat(w) {
+          const theta = norm(w);
+          if (theta < 1e-8) {
+            return [
+              [1, -w[2], w[1]],
+              [w[2], 1, -w[0]],
+              [-w[1], w[0], 1],
+            ];
+          }
+          const kx = w[0] / theta;
+          const ky = w[1] / theta;
+          const kz = w[2] / theta;
+          const c = Math.cos(theta);
+          const s = Math.sin(theta);
+          const v = 1 - c;
+          return [
+            [kx * kx * v + c, kx * ky * v - kz * s, kx * kz * v + ky * s],
+            [ky * kx * v + kz * s, ky * ky * v + c, ky * kz * v - kx * s],
+            [kz * kx * v - ky * s, kz * ky * v + kx * s, kz * kz * v + c],
+          ];
+        }
+
+        function mat3Mul(A, B) {
+          const C = [
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+          ];
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              C[i][j] =
+                A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j];
+            }
+          }
+          return C;
+        }
+
+        function orthonormalizeMat3(R) {
+          const r0 = normalize([R[0][0], R[1][0], R[2][0]]);
+          const c1 = [R[0][1], R[1][1], R[2][1]];
+          const r1 = normalize(subVec(c1, scaleVec(r0, dot(r0, c1))));
+          const r2 = normalize(cross(r0, r1));
+          return [
+            [r0[0], r1[0], r2[0]],
+            [r0[1], r1[1], r2[1]],
+            [r0[2], r1[2], r2[2]],
+          ];
+        }
+
+        function trackVisualFrame(anchorPose) {
+          if (!visualTracker.anchors.length || !anchorPose) return null;
+          const gray = captureTrackingGrayFrame();
+          const W = visualTracker.W;
+          const H = visualTracker.H;
+          const pad = 6;
+
+          // Predict initial search center from gyro delta (if active) or previous frame shift
+          let gyroRel = null;
+          if (
+            gyroState.hasReading &&
+            gyroState.currentEarthFromCam &&
+            camState.frozenSnapshotGyro
+          ) {
+            gyroRel = computeRelativeGyroMatrix(
+              gyroState.currentEarthFromCam,
+              camState.frozenSnapshotGyro
+            );
+          }
+
+          const searchRad = visualTracker.matchedCount >= 3 ? 16 : 24;
+          const matched = [];
+
+          for (let i = 0; i < visualTracker.anchors.length; i++) {
+            const anc = visualTracker.anchors[i];
+            let predX = anc.rx + visualTracker.avgShift.dx;
+            let predY = anc.ry + visualTracker.avgShift.dy;
+
+            if (gyroRel) {
+              const rxCss = anc.rxNorm * camState.cssW;
+              const ryCss = anc.ryNorm * camState.cssH;
+              const uRef = [
+                (rxCss - anchorPose.cx) / anchorPose.f,
+                (ryCss - anchorPose.cy) / anchorPose.f,
+                1,
+              ];
+              const uPred = mat3MulVec(gyroRel, uRef);
+              if (uPred[2] > 0.1) {
+                const pxCss = anchorPose.cx + (anchorPose.f * uPred[0]) / uPred[2];
+                const pyCss = anchorPose.cy + (anchorPose.f * uPred[1]) / uPred[2];
+                const gx = (pxCss / camState.cssW) * W;
+                const gy = (pyCss / camState.cssH) * H;
+                // Use gyro prediction if visual lock was lost or gyro stays inside frame
+                if (visualTracker.matchedCount < 3) {
+                  predX = gx;
+                  predY = gy;
+                } else {
+                  predX = 0.65 * anc.lastX + 0.35 * gx;
+                  predY = 0.65 * anc.lastY + 0.35 * gy;
+                }
+              }
+            }
+
+            const cx0 = Math.round(predX);
+            const cy0 = Math.round(predY);
+            if (cx0 < -10 || cx0 > W + 10 || cy0 < -10 || cy0 > H + 10) continue;
+
+            let bestScore = -1;
+            let bestX = cx0;
+            let bestY = cy0;
+
+            const minX = Math.max(pad, cx0 - searchRad);
+            const maxX = Math.min(W - pad - 1, cx0 + searchRad);
+            const minY = Math.max(pad, cy0 - searchRad);
+            const maxY = Math.min(H - pad - 1, cy0 + searchRad);
+
+            for (let y = minY; y <= maxY; y += 2) {
+              for (let x = minX; x <= maxX; x += 2) {
+                const s = nccCoarse(gray, W, x, y, anc.cPatch);
+                if (s > bestScore) {
+                  bestScore = s;
+                  bestX = x;
+                  bestY = y;
+                }
+              }
+            }
+
+            if (bestScore < 0.52) continue;
+
+            // Fine 5x5 search around coarse peak
+            let fineBest = -1;
+            let fx = bestX;
+            let fy = bestY;
+            const fMinX = Math.max(pad, bestX - 2);
+            const fMaxX = Math.min(W - pad - 1, bestX + 2);
+            const fMinY = Math.max(pad, bestY - 2);
+            const fMaxY = Math.min(H - pad - 1, bestY + 2);
+            for (let y = fMinY; y <= fMaxY; y++) {
+              for (let x = fMinX; x <= fMaxX; x++) {
+                const s = nccFine(gray, W, x, y, anc.patch);
+                if (s > fineBest) {
+                  fineBest = s;
+                  fx = x;
+                  fy = y;
+                }
+              }
+            }
+
+            if (fineBest >= 0.72) {
+              // Subpixel parabolic refinement
+              let subX = fx;
+              let subY = fy;
+              if (fx > pad && fx < W - pad - 1) {
+                const sL = nccFine(gray, W, fx - 1, fy, anc.patch);
+                const sR = nccFine(gray, W, fx + 1, fy, anc.patch);
+                const denomX = 2 * (sL - 2 * fineBest + sR);
+                if (denomX < -1e-4) {
+                  subX += Math.max(-0.5, Math.min(0.5, (sL - sR) / denomX));
+                }
+              }
+              if (fy > pad && fy < H - pad - 1) {
+                const sU = nccFine(gray, W, fx, fy - 1, anc.patch);
+                const sD = nccFine(gray, W, fx, fy + 1, anc.patch);
+                const denomY = 2 * (sU - 2 * fineBest + sD);
+                if (denomY < -1e-4) {
+                  subY += Math.max(-0.5, Math.min(0.5, (sU - sD) / denomY));
+                }
+              }
+
+              anc.lastX = subX;
+              anc.lastY = subY;
+              matched.push({
+                anc,
+                xTrk: subX,
+                yTrk: subY,
+                score: fineBest,
+              });
+            }
+          }
+
+          visualTracker.matchedCount = matched.length;
+          visualTracker.matchedPoints = matched.map((m) => ({
+            x: (m.xTrk / W) * camState.cssW,
+            y: (m.yTrk / H) * camState.cssH,
+          }));
+
+          if (matched.length < 3) {
+            visualTracker.confidence = 0;
+            return null;
+          }
+
+          // Update average frame shift
+          let sumDx = 0;
+          let sumDy = 0;
+          matched.forEach((m) => {
+            sumDx += m.xTrk - m.anc.rx;
+            sumDy += m.yTrk - m.anc.ry;
+          });
+          visualTracker.avgShift = {
+            dx: sumDx / matched.length,
+            dy: sumDy / matched.length,
+          };
+
+          // Solve SO(3) camera rotation R_vis aligning reference rays -> current rays with IRLS
+          const pairs = matched.map((m) => {
+            const rxCss = m.anc.rxNorm * camState.cssW;
+            const ryCss = m.anc.ryNorm * camState.cssH;
+            const cxCss = (m.xTrk / W) * camState.cssW;
+            const cyCss = (m.yTrk / H) * camState.cssH;
+            return {
+              u: normalize([
+                (rxCss - anchorPose.cx) / anchorPose.f,
+                (ryCss - anchorPose.cy) / anchorPose.f,
+                1,
+              ]),
+              v: normalize([
+                (cxCss - anchorPose.cx) / anchorPose.f,
+                (cyCss - anchorPose.cy) / anchorPose.f,
+                1,
+              ]),
+              w: m.score,
+            };
+          });
+
+          let R = visualTracker.lastR.map((r) => [...r]);
+          for (let iter = 0; iter < 8; iter++) {
+            const g = [0, 0, 0];
+            const Hmat = [
+              [0.004, 0, 0],
+              [0, 0.004, 0],
+              [0, 0, 0.004],
+            ];
+            for (let i = 0; i < pairs.length; i++) {
+              const q = mat3MulVec(R, pairs[i].u);
+              const e = subVec(q, pairs[i].v);
+              const errNorm = norm(e);
+              const wi =
+                pairs[i].w * (iter >= 3 ? 1 / (1 + (errNorm / 0.022) ** 2) : 1);
+              const cr = cross(q, e);
+              g[0] += wi * cr[0];
+              g[1] += wi * cr[1];
+              g[2] += wi * cr[2];
+              for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                  Hmat[r][c] += wi * ((r === c ? 1 : 0) - q[r] * q[c]);
+                }
+              }
+            }
+            const dw = solveLinear3(Hmat, [-g[0], -g[1], -g[2]]);
+            if (!dw || norm(dw) < 1e-6) break;
+            R = orthonormalizeMat3(mat3Mul(rodriguesMat(dw), R));
+          }
+
+          // Smooth minor jitter & estimate gentle radial depth scale
+          visualTracker.lastR = R;
+          visualTracker.confidence = Math.min(1, matched.length / 6);
+
+          return { R, scale: 1.0, matchedCount: matched.length };
+        }
 
         let gl = null;
         let glProg = null;
@@ -3941,7 +4434,21 @@
           };
         }
 
+        function applyRotToPose(base, R_rel) {
+          return {
+            ...base,
+            r1: mat3MulVec(R_rel, base.r1),
+            rUp: mat3MulVec(R_rel, base.rUp),
+            r2: mat3MulVec(R_rel, base.r2),
+            t: mat3MulVec(R_rel, base.t),
+            triadUx: base.triadUx ? mat3MulVec(R_rel, base.triadUx) : undefined,
+            triadUy: base.triadUy ? mat3MulVec(R_rel, base.triadUy) : undefined,
+            triadUz: base.triadUz ? mat3MulVec(R_rel, base.triadUz) : undefined,
+          };
+        }
+
         function getWorldTrackedPose() {
+          if (camState.step === 'aim') return null;
           if (camState.step !== 'placed' || !camState.lockedAnchorPose) {
             return camState.mode === 'triadRef'
               ? solvePoseFromTriad()
@@ -3949,28 +4456,29 @@
           }
 
           const base = camState.lockedAnchorPose;
-          // Apply 3-DOF gyroscope tracking when live camera & gyro readings are active
+          if (camState.isFrozen || camState.bgImage) {
+            return base;
+          }
+
+          // Live tracking mode: prioritize Visual Object Anchor Tracking (locks onto door/cabinet pixels!)
+          const vis = trackVisualFrame(base);
+          if (vis && vis.matchedCount >= 3) {
+            return applyRotToPose(base, vis.R);
+          }
+
+          // Fallback to gyroscope when visual anchors temporarily leave the camera view
+          const refGyro =
+            camState.frozenSnapshotGyro || gyroState.anchorEarthFromCam;
           if (
-            !camState.isFrozen &&
-            !camState.bgImage &&
             gyroState.hasReading &&
             gyroState.currentEarthFromCam &&
-            gyroState.anchorEarthFromCam
+            refGyro
           ) {
             const R_rel = computeRelativeGyroMatrix(
               gyroState.currentEarthFromCam,
-              gyroState.anchorEarthFromCam
+              refGyro
             );
-            return {
-              ...base,
-              r1: mat3MulVec(R_rel, base.r1),
-              rUp: mat3MulVec(R_rel, base.rUp),
-              r2: mat3MulVec(R_rel, base.r2),
-              t: mat3MulVec(R_rel, base.t),
-              triadUx: base.triadUx ? mat3MulVec(R_rel, base.triadUx) : undefined,
-              triadUy: base.triadUy ? mat3MulVec(R_rel, base.triadUy) : undefined,
-              triadUz: base.triadUz ? mat3MulVec(R_rel, base.triadUz) : undefined,
-            };
+            return applyRotToPose(base, R_rel);
           }
           return base;
         }
@@ -4012,31 +4520,48 @@
           };
         }
 
-        function clampOffsetInFrontOfCamera(anchorPose, nextX, nextZ) {
+        function clampOffsetInFrontOfCamera(anchorPose, nextX, nextY, nextZ) {
           const clampedX = Math.max(-7, Math.min(7, nextX));
+          const clampedY = Math.max(-1.5, Math.min(4.5, nextY));
           const clampedZ = Math.max(-2.5, Math.min(7, nextZ));
           const zCam =
             clampedX * anchorPose.r1[2] +
+            clampedY * anchorPose.rUp[2] +
             clampedZ * anchorPose.r2[2] +
             anchorPose.t[2];
           if (zCam < 0.45) {
-            return { x: camState.offsetX, z: camState.offsetZ };
+            return {
+              x: camState.offsetX,
+              y: camState.offsetY,
+              z: camState.offsetZ,
+            };
           }
-          return { x: clampedX, z: clampedZ };
+          return { x: clampedX, y: clampedY, z: clampedZ };
         }
 
-        function getSideOffsetX(side) {
-          const hw = state.realWidthMeters / 2;
-          if (camState.mode === 'floorQuad') return 0;
-          if (side === 'left') return -(hw + 0.15);
-          if (side === 'right') return hw + 0.15;
-          return 0;
-        }
-
-        function syncSideButtons() {
-          sideBtns.forEach((b) =>
-            b.classList.toggle('is-active', b.dataset.side === camState.sideAlignment)
+        function syncPlaneControls() {
+          planeBtns.forEach((b) =>
+            b.classList.toggle('is-active', b.dataset.plane === camState.activePlane)
           );
+          let val = camState.offsetZ;
+          if (camState.activePlane === 'XY') {
+            camNormalAxisLabel.textContent = 'Z 偏移';
+            camDepthSlider.min = '-2.0';
+            camDepthSlider.max = '4.5';
+            val = camState.offsetZ;
+          } else if (camState.activePlane === 'XZ') {
+            camNormalAxisLabel.textContent = 'Y 高度';
+            camDepthSlider.min = '-0.5';
+            camDepthSlider.max = '3.0';
+            val = camState.offsetY;
+          } else {
+            camNormalAxisLabel.textContent = 'X 偏移';
+            camDepthSlider.min = '-3.0';
+            camDepthSlider.max = '3.0';
+            val = camState.offsetX;
+          }
+          camDepthSlider.value = val.toFixed(2);
+          camDepthVal.textContent = (val >= 0 ? '+' : '') + val.toFixed(2) + 'm';
         }
 
         function syncFloatingResetHighlight() {
@@ -4045,13 +4570,97 @@
             return;
           }
           camFloatingResetBtn.hidden = false;
-          const defX = getSideOffsetX(camState.sideAlignment);
           const defZ = camState.mode === 'triadRef' ? 0.0 : 0.25;
           const shifted =
-            Math.abs(camState.offsetX - defX) > 0.08 ||
+            Math.abs(camState.offsetX) > 0.08 ||
+            Math.abs(camState.offsetY) > 0.08 ||
             Math.abs(camState.offsetZ - defZ) > 0.08 ||
             Math.abs(camState.headingDeg) > 1;
           camFloatingResetBtn.classList.toggle('is-shifted', shifted);
+        }
+
+        function computeActivePlaneQuad(pose, hw, h) {
+          const rad = (camState.headingDeg * Math.PI) / 180;
+          const cosA = Math.cos(rad);
+          const sinA = Math.sin(rad);
+          const ox = camState.offsetX;
+          const oy = camState.offsetY;
+          const oz = camState.offsetZ;
+
+          const pZ0 = projectWorldPoint(pose, 0, 0, 0);
+          const pZ1 = projectWorldPoint(pose, 0, 0, 0.5);
+
+          if (camState.activePlane === 'XZ') {
+            // Horizontal floor plane: X width (-hw..+hw), Z depth (0..+h into room)
+            const intoRoomDir = pZ1 && pZ0 && pZ1.y > pZ0.y ? -1 : 1;
+            const mapXZ = (lx, lz) => {
+              const dz = lz * intoRoomDir;
+              return [
+                ox + lx * cosA + dz * sinA,
+                oy,
+                oz - lx * sinA + dz * cosA,
+              ];
+            };
+            return {
+              p0: mapXZ(-hw, 0),
+              p1: mapXZ(hw, 0),
+              p2: mapXZ(hw, h),
+              p3: mapXZ(-hw, h),
+              isFloorQuad: true,
+              sil: (sx, sw, sy0, sy1) => [
+                [ox + sx - sw, oy + sy0, oz],
+                [ox + sx + sw, oy + sy0, oz],
+                [ox + sx + sw, oy + sy1, oz],
+                [ox + sx - sw, oy + sy1, oz],
+              ],
+            };
+          }
+
+          if (camState.activePlane === 'YZ') {
+            // Upright side-wall plane: Z width (unmirrored left-to-right), Y height (0..h), normal X
+            const zDir = pZ1 && pZ0 && pZ1.x < pZ0.x ? -1 : 1;
+            const mapYZ = (lx, ly, nx) => {
+              const dz = lx * zDir;
+              return [
+                ox + nx * cosA + dz * sinA,
+                oy + ly,
+                oz - nx * sinA + dz * cosA,
+              ];
+            };
+            return {
+              p0: mapYZ(-hw, 0, 0),
+              p1: mapYZ(hw, 0, 0),
+              p2: mapYZ(hw, h, 0),
+              p3: mapYZ(-hw, h, 0),
+              isFloorQuad: false,
+              sil: (sx, sw, sy0, sy1) => [
+                mapYZ(sx - sw, sy0, 0.04),
+                mapYZ(sx + sw, sy0, 0.04),
+                mapYZ(sx + sw, sy1, 0.04),
+                mapYZ(sx - sw, sy1, 0.04),
+              ],
+            };
+          }
+
+          // Default XY plane: X width (-hw..+hw), Y height (0..h), normal Z
+          const mapXY = (lx, ly, lz) => [
+            ox + lx * cosA + lz * sinA,
+            oy + ly,
+            oz - lx * sinA + lz * cosA,
+          ];
+          return {
+            p0: mapXY(-hw, 0, 0),
+            p1: mapXY(hw, 0, 0),
+            p2: mapXY(hw, h, 0),
+            p3: mapXY(-hw, h, 0),
+            isFloorQuad: false,
+            sil: (sx, sw, sy0, sy1) => [
+              mapXY(sx - sw, sy0, 0.04),
+              mapXY(sx + sw, sy0, 0.04),
+              mapXY(sx + sw, sy1, 0.04),
+              mapXY(sx - sw, sy1, 0.04),
+            ],
+          };
         }
 
         function renderCameraWebGL() {
@@ -4099,18 +4708,6 @@
           const uTexLoc = gl.getUniformLocation(glProg, 'uTex');
           const uAlphaLoc = gl.getUniformLocation(glProg, 'uAlpha');
 
-          const rad = (camState.headingDeg * Math.PI) / 180;
-          const cosA = Math.cos(rad);
-          const sinA = Math.sin(rad);
-
-          function toWorld(lx, ly, lz) {
-            return [
-              camState.offsetX + lx * cosA + lz * sinA,
-              ly,
-              camState.offsetZ - lx * sinA + lz * cosA,
-            ];
-          }
-
           function drawTexturedQuad(verts, tex, alphaVal) {
             gl.bindBuffer(gl.ARRAY_BUFFER, glPosBuf);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.DYNAMIC_DRAW);
@@ -4135,16 +4732,10 @@
 
           const hw = state.realWidthMeters / 2;
           const h = state.realHeightMeters;
+          const quad = computeActivePlaneQuad(pose, hw, h);
 
           if (state.includeScaleGuides && glSilhouetteTex) {
-            const sx =
-              camState.sideAlignment === 'left' ? -(hw + 0.42) : hw + 0.42;
-            const sw = 0.28;
-            const sh = 1.7;
-            const s0 = toWorld(sx - sw, 0, 0.04);
-            const s1 = toWorld(sx + sw, 0, 0.04);
-            const s2 = toWorld(sx + sw, sh, 0.04);
-            const s3 = toWorld(sx - sw, sh, 0.04);
+            const [s0, s1, s2, s3] = quad.sil(hw + 0.42, 0.28, 0, 1.7);
             drawTexturedQuad(
               [...s0, ...s1, ...s2, ...s0, ...s2, ...s3],
               glSilhouetteTex,
@@ -4153,12 +4744,8 @@
           }
 
           if (glArtworkTex) {
-            const p0 = toWorld(-hw, 0, 0);
-            const p1 = toWorld(hw, 0, 0);
-            const p2 = toWorld(hw, h, 0);
-            const p3 = toWorld(-hw, h, 0);
             drawTexturedQuad(
-              [...p0, ...p1, ...p2, ...p0, ...p2, ...p3],
+              [...quad.p0, ...quad.p1, ...quad.p2, ...quad.p0, ...quad.p2, ...quad.p3],
               glArtworkTex,
               camState.opacity
             );
@@ -4186,9 +4773,37 @@
           const W = camState.cssW;
           const H = camState.cssH;
           arUiCtx.clearRect(0, 0, W, H);
+
+          // STEP 0: Live Viewfinder Aiming before freezing still photo
+          if (camState.step === 'aim') {
+            arUiCtx.save();
+            const mx = W * 0.12;
+            const my = H * 0.14;
+            const bLen = 22;
+            arUiCtx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
+            arUiCtx.lineWidth = 2;
+            const corners = [
+              [mx, my, 1, 1],
+              [W - mx, my, -1, 1],
+              [W - mx, H - my, -1, -1],
+              [mx, H - my, 1, -1],
+            ];
+            corners.forEach(([x, y, sx, sy]) => {
+              arUiCtx.beginPath();
+              arUiCtx.moveTo(x + sx * bLen, y);
+              arUiCtx.lineTo(x, y);
+              arUiCtx.lineTo(x, y + sy * bLen);
+              arUiCtx.stroke();
+            });
+            arUiCtx.restore();
+            camBannerHint.textContent =
+              '第0步：将门/柜底角与地面收入画面，点击下方「定格拍照」后再设 XYZ 轴';
+            return;
+          }
+
           const pose = camState.pose;
 
-          // STEP 1: Setting the 3-Axis Corner Triad / Floor Quad before locking
+          // STEP 1: Setting the 3-Axis Corner Triad / Floor Quad on frozen still photo
           if (camState.step === 'setAxis') {
             if (camState.mode === 'triadRef') {
               const pO = {
@@ -4265,7 +4880,7 @@
 
               drawEndpointHandle(arUiCtx, pX.x, pX.y, 'X', ACCENT_BLUE);
               drawEndpointHandle(arUiCtx, pZ.x, pZ.y, 'Z', ACCENT_GREEN);
-              drawEndpointHandle(arUiCtx, pY.x, pY.y, '顶', ACCENT_RED);
+              drawEndpointHandle(arUiCtx, pY.x, pY.y, 'Y', ACCENT_RED);
               drawEndpointHandle(arUiCtx, pO.x, pO.y, 'O', '#111111');
 
               const mx = (pO.x + pY.x) / 2;
@@ -4285,7 +4900,7 @@
               arUiCtx.restore();
 
               camBannerHint.textContent =
-                '第1步：底角 O 对齐着地角，调整 Y(高)、X(横边)、Z(纵深) 使绿色网格贴合地面';
+                '第1步：原点 O 对齐着地角，拖动 X(蓝)、Y(红/高)、Z(绿) 轴使绿色网格贴合地面';
             } else {
               const pts = camState.quadNorm.map((p) => ({
                 x: p.x * W,
@@ -4313,13 +4928,13 @@
               arUiCtx.restore();
 
               camBannerHint.textContent = pose
-                ? '第1步：对齐地面 1–4 角点，然后点下方「锁定三轴基准」'
+                ? '第1步：对齐地面 1–4 角点，然后点下方「锁定 XYZ 轴基准」'
                 : '四个角点需按顺时针（1左上→2右上→3右下→4左下）围成凸四边形';
             }
             return;
           }
 
-          // STEP 2: World-Locked Artwork & Locked 3-Axis Corner Triad
+          // STEP 2: World-Locked Artwork & Locked XYZ Axis Reference
           if (!pose || !camState.showGuides) return;
 
           arUiCtx.save();
@@ -4335,7 +4950,7 @@
             if (o3 && z3) drawCameraAxisLine(arUiCtx, o3, z3, ACCENT_GREEN, 2);
             if (o3 && y3) {
               drawCameraAxisLine(arUiCtx, o3, y3, ACCENT_RED, 2.5);
-              const axLabel = `已锁定三轴 ${pose.refHeightM.toFixed(2)}m`;
+              const axLabel = `已锁定 XYZ 轴 ${pose.refHeightM.toFixed(2)}m`;
               arUiCtx.font = '600 10px "JetBrains Mono", monospace';
               const lw = arUiCtx.measureText(axLabel).width + 12;
               arUiCtx.fillStyle = 'rgba(17, 17, 17, 0.88)';
@@ -4358,7 +4973,7 @@
               const artCtr = projectWorldPoint(
                 pose,
                 camState.offsetX,
-                0,
+                camState.offsetY,
                 camState.offsetZ
               );
               if (artCtr) {
@@ -4374,34 +4989,32 @@
             }
           }
 
-          // Artwork bottom footprint line & dimension label on floor y = 0
-          const rad = (camState.headingDeg * Math.PI) / 180;
-          const cosA = Math.cos(rad);
-          const sinA = Math.sin(rad);
+          // Artwork footprint line/quad & active plane badge
           const hw = state.realWidthMeters / 2;
-          const fL = projectWorldPoint(
-            pose,
-            camState.offsetX - hw * cosA,
-            0,
-            camState.offsetZ + hw * sinA
-          );
-          const fR = projectWorldPoint(
-            pose,
-            camState.offsetX + hw * cosA,
-            0,
-            camState.offsetZ - hw * sinA
-          );
-          if (fL && fR) {
+          const h = state.realHeightMeters;
+          const quad = computeActivePlaneQuad(pose, hw, h);
+          const f0 = projectWorldPoint(pose, quad.p0[0], quad.p0[1], quad.p0[2]);
+          const f1 = projectWorldPoint(pose, quad.p1[0], quad.p1[1], quad.p1[2]);
+          if (f0 && f1) {
             arUiCtx.strokeStyle = ACCENT_RED;
             arUiCtx.lineWidth = 3;
             arUiCtx.beginPath();
-            arUiCtx.moveTo(fL.x, fL.y);
-            arUiCtx.lineTo(fR.x, fR.y);
+            arUiCtx.moveTo(f0.x, f0.y);
+            arUiCtx.lineTo(f1.x, f1.y);
+            if (quad.isFloorQuad) {
+              const f2 = projectWorldPoint(pose, quad.p2[0], quad.p2[1], quad.p2[2]);
+              const f3 = projectWorldPoint(pose, quad.p3[0], quad.p3[1], quad.p3[2]);
+              if (f2 && f3) {
+                arUiCtx.lineTo(f2.x, f2.y);
+                arUiCtx.lineTo(f3.x, f3.y);
+                arUiCtx.closePath();
+              }
+            }
             arUiCtx.stroke();
 
-            const mx = (fL.x + fR.x) / 2;
-            const my = (fL.y + fR.y) / 2 + 16;
-            const dimLabel = `${state.realWidthMeters.toFixed(2)}m × ${state.realHeightMeters.toFixed(2)}m`;
+            const mx = (f0.x + f1.x) / 2;
+            const my = (f0.y + f1.y) / 2 + 16;
+            const dimLabel = `${camState.activePlane}平面 · ${state.realWidthMeters.toFixed(2)}m × ${state.realHeightMeters.toFixed(2)}m`;
             arUiCtx.font = '600 11px "JetBrains Mono", monospace';
             const tw = arUiCtx.measureText(dimLabel).width + 14;
             arUiCtx.fillStyle = 'rgba(17,17,17,0.85)';
@@ -4413,7 +5026,44 @@
             arUiCtx.fillText(dimLabel, mx, my);
           }
 
+          // Draw subtle green feature dots showing real-world object corners locked in live tracking
+          if (
+            !camState.isFrozen &&
+            !camState.bgImage &&
+            visualTracker.matchedPoints.length > 0
+          ) {
+            visualTracker.matchedPoints.forEach((pt) => {
+              arUiCtx.fillStyle = 'rgba(16, 185, 129, 0.85)';
+              arUiCtx.beginPath();
+              arUiCtx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+              arUiCtx.fill();
+            });
+          }
+
           arUiCtx.restore();
+        }
+
+        function syncStepPanels() {
+          stepAimPanel.hidden = camState.step !== 'aim';
+          stepSetAxisPanel.hidden = camState.step !== 'setAxis';
+          stepPlacedPanel.hidden = camState.step !== 'placed';
+
+          if (camState.step === 'aim') {
+            camFreezeBtn.hidden = true;
+          } else if (camState.step === 'setAxis') {
+            camFreezeBtn.hidden = !camState.stream && !camState.bgImage;
+            camFreezeBtn.textContent = camState.bgImage ? '切相机' : '重拍定格';
+            camFreezeBtn.classList.remove('is-active');
+          } else {
+            camFreezeBtn.hidden = true;
+            camLiveTrackToggleBtn.hidden = !camState.stream || Boolean(camState.bgImage);
+            if (!camLiveTrackToggleBtn.hidden) {
+              camLiveTrackToggleBtn.textContent = camState.isFrozen
+                ? '开启实时追踪'
+                : '定格零晃动';
+              camLiveTrackToggleBtn.classList.toggle('is-active', !camState.isFrozen);
+            }
+          }
         }
 
         function updateCameraScene() {
@@ -4421,6 +5071,79 @@
           renderCameraWebGL();
           renderCameraUiOverlay();
           syncFloatingResetHighlight();
+        }
+
+        function enterAimStep() {
+          camState.step = 'aim';
+          camState.isFrozen = false;
+          camState.bgImage = null;
+          camState.lockedAnchorPose = null;
+          camState.frozenSnapshotGyro = null;
+          syncStepPanels();
+          updateCameraScene();
+        }
+
+        function enterSetAxisStep() {
+          camState.step = 'setAxis';
+          camState.isFrozen = true;
+          camState.lockedAnchorPose = null;
+          syncStepPanels();
+          updateCameraScene();
+        }
+
+        function saveFrozenSnapshotBuffer() {
+          if (!camState.frozenSnapshotCanvas) {
+            camState.frozenSnapshotCanvas = document.createElement('canvas');
+          }
+          camState.frozenSnapshotCanvas.width = arBgCanvas.width;
+          camState.frozenSnapshotCanvas.height = arBgCanvas.height;
+          camState.frozenSnapshotCanvas
+            .getContext('2d')
+            .drawImage(arBgCanvas, 0, 0);
+        }
+
+        function restoreFrozenSnapshotBuffer() {
+          if (!camState.frozenSnapshotCanvas) return;
+          arBgCtx.drawImage(
+            camState.frozenSnapshotCanvas,
+            0,
+            0,
+            camState.cssW,
+            camState.cssH
+          );
+        }
+
+        function captureCurrentCameraFrameAndSetAxis() {
+          if (!camState.stream || arCameraVideo.readyState < 2) {
+            camFallbackCard.classList.add('is-visible');
+            return;
+          }
+          drawCameraBgSource(arCameraVideo);
+          saveFrozenSnapshotBuffer();
+          camState.frozenSnapshotGyro = gyroState.currentEarthFromCam
+            ? gyroState.currentEarthFromCam.map((r) => [...r])
+            : null;
+          enterSetAxisStep();
+        }
+
+        function updateLiveTrackingStatusBanner() {
+          if (camState.isFrozen || camState.bgImage) {
+            gyroStatusText.textContent = '定格零晃动';
+            camBannerHint.textContent =
+              '已锁定在定格实景中（零晃动）：单指可微调位置，或点「开启实时追踪」';
+          } else if (visualTracker.matchedCount >= 3) {
+            gyroStatusText.textContent = `视觉锁定 ${visualTracker.matchedCount} 特征点`;
+            camBannerHint.textContent =
+              '实时视觉锚定中：绿点为真实门/柜特征点，可点「定格零晃动」静止对比';
+          } else if (gyroState.hasReading) {
+            gyroStatusText.textContent = '陀螺仪接力 (请回对门/柜)';
+            camBannerHint.textContent =
+              '特征点暂出画面：转回原门/柜可重新视觉锁定，或点「定格零晃动」';
+          } else {
+            gyroStatusText.textContent = '未检测到特征点';
+            camBannerHint.textContent =
+              '画面变化过大未匹配特征点，建议对准原门/柜或点「定格零晃动」';
+          }
         }
 
         function lockReferenceAxisAndPlaceArtwork() {
@@ -4431,51 +5154,36 @@
           if (!solved) return;
 
           camState.lockedAnchorPose = solved;
-          gyroState.anchorEarthFromCam = gyroState.currentEarthFromCam
+          gyroState.anchorEarthFromCam = camState.frozenSnapshotGyro
+            ? camState.frozenSnapshotGyro.map((r) => [...r])
+            : gyroState.currentEarthFromCam
             ? gyroState.currentEarthFromCam.map((r) => [...r])
             : null;
 
+          // Extract high-contrast object corner anchors from the frozen photo for live tracking
+          initVisualAnchorsFromBg();
+
           camState.step = 'placed';
-          stepSetAxisPanel.hidden = true;
-          stepPlacedPanel.hidden = false;
+          // Keep frozen zero-shake mode right after locking so artwork never wobbles/jumps!
+          camState.isFrozen = true;
+          syncStepPanels();
 
-          // Place artwork right beside the reference corner (default right)
-          camState.sideAlignment =
-            camState.mode === 'triadRef' ? 'right' : 'center';
-          syncSideButtons();
+          camState.activePlane = 'XY';
           resetCameraPlacement();
-
-          if (camState.isFrozen || camState.bgImage) {
-            gyroStatusText.textContent = '定格照片空间锁定';
-            camBannerHint.textContent =
-              '已锁定三轴地面基准：作品贴地固定在旁 · 单指拖动微调位置或透明度';
-          } else if (gyroState.hasReading) {
-            gyroStatusText.textContent = '陀螺仪空间追踪中';
-            camBannerHint.textContent =
-              '已三轴空间锁定：转动手机看四周，作品会贴地固定在原门/柜旁';
-          } else {
-            gyroStatusText.textContent = '未授权陀螺仪 (建议点定格)';
-            camBannerHint.textContent =
-              '未获陀螺仪权限：建议点击右上角「定格」拍下现场画面以稳固锁定';
-          }
+          updateLiveTrackingStatusBanner();
         }
 
         function unlockToSetAxis() {
-          camState.step = 'setAxis';
-          camState.lockedAnchorPose = null;
-          gyroState.anchorEarthFromCam = null;
-          stepSetAxisPanel.hidden = false;
-          stepPlacedPanel.hidden = true;
-          updateCameraScene();
+          enterSetAxisStep();
         }
 
         function resetCameraPlacement() {
           const defZ = camState.mode === 'triadRef' ? 0.0 : 0.25;
-          camState.offsetX = getSideOffsetX(camState.sideAlignment);
+          camState.offsetX = 0;
+          camState.offsetY = 0;
           camState.offsetZ = defZ;
           camState.headingDeg = 0;
-          camDepthSlider.value = defZ.toFixed(2);
-          camDepthVal.textContent = (defZ >= 0 ? '+' : '') + defZ.toFixed(2) + 'm';
+          syncPlaneControls();
           camHeadingSlider.value = '0';
           camHeadingVal.textContent = '0°';
           updateCameraScene();
@@ -4502,7 +5210,11 @@
           arBgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
           arUiCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-          if (camState.bgImage) drawCameraBgSource(camState.bgImage);
+          if (camState.bgImage) {
+            drawCameraBgSource(camState.bgImage);
+          } else if (camState.isFrozen && camState.frozenSnapshotCanvas) {
+            restoreFrozenSnapshotBuffer();
+          }
           updateCameraScene();
         }
 
@@ -4535,10 +5247,11 @@
               arCameraVideo.readyState >= 2
             ) {
               drawCameraBgSource(arCameraVideo);
-              if (camState.step === 'placed' && gyroState.hasReading) {
+              if (camState.step === 'placed') {
                 camState.pose = getWorldTrackedPose();
                 renderCameraWebGL();
                 renderCameraUiOverlay();
+                updateLiveTrackingStatusBanner();
               }
             }
             camState.rafId = requestAnimationFrame(tick);
@@ -4598,10 +5311,9 @@
           const img = new Image();
           img.onload = function () {
             camState.bgImage = img;
-            camState.isFrozen = true;
             camFallbackCard.classList.remove('is-visible');
             drawCameraBgSource(img);
-            updateCameraScene();
+            enterSetAxisStep();
           };
           img.src = c.toDataURL('image/jpeg', 0.92);
         }
@@ -4613,7 +5325,11 @@
           );
           axisRefRow.hidden = nextMode !== 'triadRef';
           floorQuadRow.hidden = nextMode !== 'floorQuad';
-          unlockToSetAxis();
+          if (camState.step === 'placed') {
+            enterSetAxisStep();
+          } else {
+            updateCameraScene();
+          }
         }
 
         async function openCameraArView() {
@@ -4626,16 +5342,19 @@
           camState.isOpen = true;
           camState.isFrozen = false;
           camState.bgImage = null;
-          camState.step = 'setAxis';
+          camState.frozenSnapshotGyro = null;
           camState.lockedAnchorPose = null;
-          camFreezeBtn.textContent = '定格';
-          camFreezeBtn.classList.remove('is-active');
           camFallbackCard.classList.remove('is-visible');
 
           cameraArOverlay.classList.add('is-open');
           initWebGLIfNeeded();
           resizeCameraCanvases();
-          switchCamMode(camState.mode);
+          camModeBtns.forEach((b) =>
+            b.classList.toggle('is-active', b.dataset.camMode === camState.mode)
+          );
+          axisRefRow.hidden = camState.mode !== 'triadRef';
+          floorQuadRow.hidden = camState.mode !== 'floorQuad';
+          enterAimStep();
 
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             try {
@@ -4852,15 +5571,12 @@
             const bounded = clampOffsetInFrontOfCamera(
               camState.lockedAnchorPose,
               nextX,
+              camState.offsetY,
               nextZ
             );
             camState.offsetX = bounded.x;
             camState.offsetZ = bounded.z;
-            camDepthSlider.value = camState.offsetZ.toFixed(2);
-            camDepthVal.textContent =
-              (camState.offsetZ >= 0 ? '+' : '') +
-              camState.offsetZ.toFixed(2) +
-              'm';
+            syncPlaneControls();
             updateCameraScene();
           }
         });
@@ -4886,15 +5602,41 @@
         // =====================================================================
         openCameraArBtn.addEventListener('click', openCameraArView);
         camCloseBtn.addEventListener('click', closeCameraArView);
+        captureFreezeBtn.addEventListener('click', captureCurrentCameraFrameAndSetAxis);
+        aimUploadPhotoBtn.addEventListener('click', function () {
+          bgPhotoInput.value = '';
+          bgPhotoInput.click();
+        });
         lockAxisBtn.addEventListener('click', lockReferenceAxisAndPlaceArtwork);
         unlockAxisBtn.addEventListener('click', unlockToSetAxis);
         camFloatingResetBtn.addEventListener('click', resetCameraPlacement);
 
-        sideBtns.forEach((btn) => {
+        camLiveTrackToggleBtn.addEventListener('click', function () {
+          if (!camState.stream || camState.bgImage) return;
+          camState.isFrozen = !camState.isFrozen;
+          if (!camState.isFrozen) {
+            visualTracker.avgShift = { dx: 0, dy: 0 };
+            visualTracker.lastR = [
+              [1, 0, 0],
+              [0, 1, 0],
+              [0, 0, 1],
+            ];
+            visualTracker.anchors.forEach((a) => {
+              a.lastX = a.rx;
+              a.lastY = a.ry;
+            });
+          } else {
+            restoreFrozenSnapshotBuffer();
+          }
+          syncStepPanels();
+          updateCameraScene();
+          updateLiveTrackingStatusBanner();
+        });
+
+        planeBtns.forEach((btn) => {
           btn.addEventListener('click', function () {
-            camState.sideAlignment = btn.dataset.side;
-            syncSideButtons();
-            camState.offsetX = getSideOffsetX(camState.sideAlignment);
+            camState.activePlane = btn.dataset.plane;
+            syncPlaneControls();
             updateCameraScene();
           });
         });
@@ -4908,21 +5650,15 @@
         camFreezeBtn.addEventListener('click', function () {
           if (camState.bgImage) {
             camState.bgImage = null;
-            camState.isFrozen = false;
-            camFreezeBtn.textContent = '定格';
-            camFreezeBtn.classList.remove('is-active');
-            if (!camState.stream) openCameraArView();
+            if (camState.stream) {
+              enterAimStep();
+            } else {
+              openCameraArView();
+            }
             return;
           }
-          camState.isFrozen = !camState.isFrozen;
-          camFreezeBtn.textContent = camState.isFrozen ? '恢复' : '定格';
-          camFreezeBtn.classList.toggle('is-active', camState.isFrozen);
-          if (camState.step === 'placed') {
-            gyroStatusText.textContent = camState.isFrozen
-              ? '定格画面锁定'
-              : gyroState.hasReading
-              ? '陀螺仪空间追踪中'
-              : '未授权陀螺仪';
+          if (camState.step === 'setAxis' && camState.stream) {
+            enterAimStep();
           }
         });
 
@@ -4946,12 +5682,9 @@
             const img = new Image();
             img.onload = function () {
               camState.bgImage = img;
-              camState.isFrozen = true;
               camFallbackCard.classList.remove('is-visible');
-              camFreezeBtn.textContent = '切相机';
-              camFreezeBtn.classList.add('is-active');
               drawCameraBgSource(img);
-              updateCameraScene();
+              enterSetAxisStep();
             };
             img.src = evt.target.result;
           };
@@ -5022,20 +5755,29 @@
 
         camDepthSlider.addEventListener('input', function () {
           const d = parseFloat(camDepthSlider.value) || 0;
+          let nextX = camState.offsetX;
+          let nextY = camState.offsetY;
+          let nextZ = camState.offsetZ;
+          if (camState.activePlane === 'XY') nextZ = d;
+          else if (camState.activePlane === 'XZ') nextY = d;
+          else nextX = d;
+
           if (camState.lockedAnchorPose) {
             const bounded = clampOffsetInFrontOfCamera(
               camState.lockedAnchorPose,
-              camState.offsetX,
-              d
+              nextX,
+              nextY,
+              nextZ
             );
+            camState.offsetX = bounded.x;
+            camState.offsetY = bounded.y;
             camState.offsetZ = bounded.z;
           } else {
-            camState.offsetZ = d;
+            camState.offsetX = nextX;
+            camState.offsetY = nextY;
+            camState.offsetZ = nextZ;
           }
-          camDepthVal.textContent =
-            (camState.offsetZ >= 0 ? '+' : '') +
-            camState.offsetZ.toFixed(2) +
-            'm';
+          syncPlaneControls();
           updateCameraScene();
         });
 
