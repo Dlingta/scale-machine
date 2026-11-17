@@ -9,12 +9,12 @@
     <title>尺度原型 · AR 1:1 校准仪</title>
     <meta
       name="description"
-      content="面向策展设计师与新媒体艺术家的移动端 AR 1:1 实景尺度校准工具，支持苹果 AR Quick Look 与 WebXR。"
+      content="面向策展设计师与新媒体艺术家的移动端 AR 1:1 实景尺度校准工具，支持双等高透视标定、相机 4 点地面定标与苹果 AR Quick Look。"
     />
     <meta property="og:title" content="尺度原型 · AR 1:1 校准仪" />
     <meta
       property="og:description"
-      content="面向策展设计师与新媒体艺术家的移动端 AR 1:1 实景尺度校准工具，支持苹果 AR Quick Look 与 WebXR。"
+      content="面向策展设计师与新媒体艺术家的移动端 AR 1:1 实景尺度校准工具，支持双等高透视标定、相机 4 点地面定标与苹果 AR Quick Look。"
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -26,7 +26,7 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="theme-color" content="#FFFFFF" />
 
-    <!-- Typography: Studio Neo-Grotesque + Tabular Monospace -->
+    <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -51,15 +51,18 @@
         --accent-red: #e53935;
         --accent-red-hover: #c62828;
         --accent-red-soft: rgba(229, 57, 53, 0.08);
+        --accent-blue: #0284c7;
+        --accent-blue-soft: rgba(2, 132, 199, 0.1);
         --border-hairline: rgba(17, 17, 17, 0.09);
+        --border-strong: rgba(17, 17, 17, 0.16);
         --shadow-sheet: 0 -10px 32px rgba(0, 0, 0, 0.06);
-        --shadow-loupe: 0 12px 30px rgba(0, 0, 0, 0.22);
+        --shadow-loupe: 0 12px 30px rgba(0, 0, 0, 0.26);
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
         --font-sans: 'PingFang SC', 'Hiragino Sans GB', 'Plus Jakarta Sans',
           -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
         --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
           monospace;
-        --radius-sheet: 22px;
-        --radius-control: 12px;
         --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       }
 
@@ -82,7 +85,7 @@
         color: var(--text-main);
         font-family: var(--font-sans);
         -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
+        overscroll-behavior: none;
       }
 
       .app-shell {
@@ -91,20 +94,27 @@
         width: 100%;
         height: 100dvh;
         background: var(--bg-shell);
-        padding-top: env(safe-area-inset-top, 0px);
       }
 
+      /* Top Header */
       .app-header {
-        flex: 0 0 auto;
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        min-height: 52px;
-        padding: 10px 16px;
+        min-height: 48px;
+        padding: calc(8px + var(--safe-top)) 16px 8px;
         background: var(--surface);
         border-bottom: 1px solid var(--border-hairline);
         z-index: 20;
+      }
+
+      .brand-group {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        min-width: 0;
       }
 
       .brand-title {
@@ -118,24 +128,49 @@
       }
 
       .header-disclaimer {
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 500;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
         color: var(--text-muted);
-        text-align: right;
-        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
-      .studio-body {
-        flex: 1 1 auto;
+      .btn-text {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 10px;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-main);
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .btn-text:hover {
+        background-color: rgba(17, 17, 17, 0.05);
+      }
+
+      /* Workspace */
+      .workspace-body {
+        flex: 1;
         min-height: 0;
         display: flex;
         flex-direction: column;
         position: relative;
       }
 
-      .workspace {
-        flex: 1 1 auto;
+      .canvas-stage {
+        flex: 1;
         min-height: 0;
         position: relative;
         background-color: var(--bg-canvas);
@@ -143,10 +178,11 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        padding: 12px;
+        user-select: none;
+        -webkit-user-select: none;
       }
 
-      .workspace::before {
+      .canvas-stage::before {
         content: '';
         position: absolute;
         inset: 0;
@@ -158,261 +194,234 @@
         pointer-events: none;
       }
 
-      .calibration-canvas {
+      #calibrationCanvas {
         position: relative;
         z-index: 2;
         width: 100%;
         height: 100%;
         display: block;
         touch-action: none;
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
         cursor: crosshair;
       }
 
-      .calibration-canvas.is-empty {
+      #calibrationCanvas.is-empty {
         pointer-events: none;
-        opacity: 0;
+        cursor: default;
       }
 
-      .empty-stage {
+      /* Empty Upload Overlay */
+      .empty-upload-overlay {
         position: absolute;
         inset: 16px;
         z-index: 5;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        text-align: center;
-        padding: 24px 20px;
-        border: 1.5px dashed rgba(17, 17, 17, 0.16);
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.78);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        transition: border-color 180ms var(--ease-out),
-          background-color 180ms var(--ease-out);
       }
 
-      .empty-stage.is-dragover {
-        border-color: var(--accent-red);
-        background: rgba(255, 255, 255, 0.94);
-      }
-
-      .empty-stage.is-hidden {
+      .empty-upload-overlay.is-hidden {
         display: none;
       }
 
-      .empty-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+      .upload-panel {
+        width: 100%;
+        max-width: 410px;
         background: var(--surface);
+        border: 1px solid var(--border-strong);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.05);
+      }
+
+      .upload-panel.is-dragover {
+        border-color: var(--accent-red);
+      }
+
+      .upload-icon-box {
+        width: 42px;
+        height: 42px;
+        margin: 0 auto 10px;
+        border-radius: 10px;
+        background: var(--bg-shell);
         border: 1px solid var(--border-hairline);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 14px;
-        color: var(--text-main);
       }
 
-      .empty-title {
+      .upload-title {
+        margin: 0 0 6px;
         font-size: 16px;
         font-weight: 600;
-        color: var(--text-main);
-        margin: 0 0 6px;
       }
 
-      .empty-sub {
+      .upload-subtitle {
+        margin: 0 0 14px;
         font-size: 13px;
-        color: var(--text-subtle);
-        margin: 0 0 18px;
-        max-width: 340px;
         line-height: 1.5;
+        color: var(--text-muted);
       }
 
-      .empty-actions {
+      .upload-actions {
         display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin-bottom: 16px;
+        flex-direction: column;
+        gap: 8px;
       }
 
-      .btn-secondary {
+      .btn-solid-dark {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        width: 100%;
         min-height: 44px;
-        padding: 0 18px;
-        border-radius: var(--radius-control);
-        border: 1px solid var(--border-hairline);
-        background: var(--surface);
-        color: var(--text-main);
+        padding: 10px 16px;
+        background: var(--text-main);
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
         font-family: var(--font-sans);
         font-size: 14px;
         font-weight: 600;
         cursor: pointer;
-        white-space: nowrap;
-        transition: transform 140ms var(--ease-out),
-          background-color 140ms var(--ease-out);
-      }
-
-      .btn-secondary:hover {
-        background: #f5f5f5;
-      }
-
-      .btn-secondary:active {
-        transform: scale(0.98);
       }
 
       .btn-ghost {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        min-height: 44px;
-        padding: 0 14px;
-        border-radius: var(--radius-control);
-        border: 1px solid transparent;
-        background: transparent;
-        color: var(--text-subtle);
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 14px;
+        background: var(--bg-shell);
+        color: var(--text-main);
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
         font-family: var(--font-sans);
         font-size: 13px;
         font-weight: 500;
         cursor: pointer;
-        white-space: nowrap;
-        transition: color 140ms var(--ease-out),
-          background-color 140ms var(--ease-out);
       }
 
-      .btn-ghost:hover {
-        color: var(--text-main);
-        background: rgba(17, 17, 17, 0.04);
-      }
-
-      .guideline-note {
-        font-size: 12px;
+      .render-guideline {
+        margin: 12px 0 0;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-hairline);
+        font-size: 11px;
         line-height: 1.55;
         color: var(--text-muted);
-        max-width: 380px;
-        margin: 0;
+        text-align: left;
       }
 
-      .canvas-toolbar {
+      .canvas-instruction {
         position: absolute;
         top: 12px;
-        right: 12px;
+        left: 50%;
+        transform: translateX(-50%);
         z-index: 6;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .canvas-toolbar.is-hidden {
-        display: none;
-      }
-
-      .tool-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        min-height: 40px;
-        padding: 0 12px;
-        border-radius: 10px;
-        border: 1px solid var(--border-hairline);
-        background: rgba(255, 255, 255, 0.92);
+        padding: 7px 14px;
+        background: rgba(255, 255, 255, 0.94);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
-        color: var(--text-main);
-        font-family: var(--font-sans);
+        border: 1px solid var(--border-hairline);
+        border-radius: 8px;
         font-size: 12px;
         font-weight: 500;
-        cursor: pointer;
+        color: var(--text-main);
         white-space: nowrap;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-        transition: transform 140ms var(--ease-out),
-          background-color 140ms var(--ease-out);
-      }
-
-      .tool-btn:active {
-        transform: scale(0.97);
-      }
-
-      .tool-btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-
-      .canvas-hint {
-        position: absolute;
-        left: 14px;
-        bottom: 12px;
-        z-index: 6;
-        padding: 6px 10px;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.88);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        font-size: 12px;
-        color: var(--text-subtle);
-        pointer-events: none;
-        border: 1px solid var(--border-hairline);
-        max-width: calc(100% - 28px);
-        white-space: nowrap;
+        max-width: calc(100% - 24px);
         overflow: hidden;
         text-overflow: ellipsis;
+        pointer-events: none;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        transition: opacity 150ms ease;
       }
 
-      .canvas-hint.is-hidden {
-        display: none;
+      .canvas-instruction.is-hidden {
+        opacity: 0;
       }
 
-      /* CRITICAL: Offset Magnifier Loupe (-60px on Y-axis) */
+      /* Offset Magnifier Loupe (-60px Y-axis, 2x zoom) */
       .magnifier-loupe {
         position: fixed;
-        width: 104px;
-        height: 104px;
+        z-index: 200;
+        width: 108px;
+        height: 108px;
         border-radius: 50%;
         border: 2.5px solid #ffffff;
-        box-shadow: var(--shadow-loupe), 0 0 0 1px rgba(17, 17, 17, 0.14);
-        background: #ebebeb;
+        box-shadow: var(--shadow-loupe), 0 0 0 1px rgba(17, 17, 17, 0.22);
+        background-color: var(--bg-canvas);
         overflow: hidden;
         pointer-events: none;
-        z-index: 50;
-        transform: translate(-50%, -50%);
         opacity: 0;
-        visibility: hidden;
-        transition: opacity 90ms linear;
+        transform: translate(-50%, -50%) scale(0.9);
+        transition: opacity 80ms ease, transform 80ms ease;
+        will-change: left, top, transform, opacity;
       }
 
       .magnifier-loupe.is-active {
         opacity: 1;
-        visibility: visible;
+        transform: translate(-50%, -50%) scale(1);
       }
 
-      .magnifier-canvas {
+      #magnifierCanvas {
         width: 100%;
         height: 100%;
         display: block;
       }
 
+      .magnifier-crosshair {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .magnifier-crosshair::before,
+      .magnifier-crosshair::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        background-color: var(--accent-red);
+        transform: translate(-50%, -50%);
+      }
+
+      .magnifier-crosshair::before {
+        width: 18px;
+        height: 1.5px;
+      }
+
+      .magnifier-crosshair::after {
+        width: 1.5px;
+        height: 18px;
+      }
+
+      .magnifier-label {
+        position: absolute;
+        bottom: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        font-weight: 600;
+        color: #ffffff;
+        background: rgba(17, 17, 17, 0.72);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+
+      /* Bottom Sheet / Control Panel */
       .control-sheet {
-        flex: 0 0 auto;
+        flex-shrink: 0;
         background: var(--surface);
-        border-top-left-radius: var(--radius-sheet);
-        border-top-right-radius: var(--radius-sheet);
-        box-shadow: var(--shadow-sheet);
         border-top: 1px solid var(--border-hairline);
-        padding: 10px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+        border-radius: 20px 20px 0 0;
+        box-shadow: var(--shadow-sheet);
+        padding: 10px 16px calc(12px + var(--safe-bottom));
         z-index: 15;
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 9px;
       }
 
       .sheet-handle {
@@ -420,303 +429,607 @@
         height: 4px;
         border-radius: 2px;
         background: rgba(17, 17, 17, 0.14);
-        margin: 0 auto 2px;
+        margin: 0 auto;
       }
 
-      .meta-strip {
+      .metrics-line {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 6px 8px;
+        gap: 5px;
         font-size: 12px;
         color: var(--text-muted);
         font-variant-numeric: tabular-nums;
         line-height: 1.4;
       }
 
-      .meta-strip .meta-strong {
+      .metrics-line strong {
         color: var(--text-main);
         font-weight: 600;
         font-family: var(--font-mono);
       }
 
-      .meta-sep {
+      .metrics-sep {
         color: rgba(17, 17, 17, 0.25);
-        user-select: none;
       }
 
-      .calibration-row {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        align-items: end;
-        gap: 12px;
-      }
-
-      .field-group {
+      /* Dimension Input + Action Buttons */
+      .dimension-row {
         display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-
-      .field-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-main);
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
+        align-items: stretch;
         gap: 8px;
       }
 
-      .field-sub {
-        font-size: 11px;
-        font-weight: 400;
-        color: var(--text-muted);
-      }
-
-      .input-shell {
+      .input-field-wrap {
+        flex: 1;
         display: flex;
         align-items: center;
-        height: 46px;
-        border: 1.5px solid var(--border-hairline);
-        border-radius: var(--radius-control);
+        justify-content: space-between;
+        min-height: 44px;
+        padding: 0 12px;
         background: var(--bg-shell);
-        padding: 0 14px;
-        transition: border-color 150ms var(--ease-out),
-          background-color 150ms var(--ease-out);
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
       }
 
-      .input-shell:focus-within {
+      .input-field-wrap:focus-within {
         border-color: var(--accent-red);
-        background: var(--surface);
+        background: #ffffff;
       }
 
-      .dimension-input {
-        flex: 1 1 auto;
-        width: 100%;
-        min-width: 0;
+      .input-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-subtle);
+        white-space: nowrap;
+        margin-right: 6px;
+      }
+
+      .input-value-box {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+
+      #realLengthInput {
+        width: 68px;
         border: none;
         background: transparent;
-        color: var(--text-main);
         font-family: var(--font-mono);
         font-size: 17px;
         font-weight: 600;
+        color: var(--text-main);
+        text-align: right;
         font-variant-numeric: tabular-nums;
         outline: none;
-        padding: 0;
+        padding: 4px 0;
       }
 
       .input-unit {
-        font-size: 13px;
-        font-weight: 500;
+        font-size: 12px;
         color: var(--text-muted);
-        margin-left: 8px;
-        white-space: nowrap;
+      }
+
+      .btn-tool {
         flex-shrink: 0;
-      }
-
-      .preset-group {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .preset-btn {
-        min-height: 46px;
-        min-width: 44px;
-        padding: 0 10px;
-        border-radius: var(--radius-control);
-        border: 1px solid var(--border-hairline);
+        min-height: 44px;
+        padding: 0 11px;
         background: var(--bg-shell);
-        color: var(--text-subtle);
-        font-family: var(--font-mono);
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
+        font-family: var(--font-sans);
         font-size: 12px;
         font-weight: 500;
+        color: var(--text-main);
         cursor: pointer;
         white-space: nowrap;
-        transition: border-color 140ms var(--ease-out),
-          color 140ms var(--ease-out),
-          background-color 140ms var(--ease-out);
       }
 
-      .preset-btn.is-active {
-        border-color: var(--accent-red);
-        color: var(--accent-red);
-        background: var(--accent-red-soft);
+      .btn-tool.is-blue-active {
+        background: var(--accent-blue-soft);
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+        font-weight: 600;
       }
 
-      .cta-row {
+      .btn-tool:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      /* Perspective Calibration Row */
+      .perspective-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .check-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-subtle);
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .check-label input {
+        accent-color: var(--accent-red);
+        width: 15px;
+        height: 15px;
+        margin: 0;
+      }
+
+      .segmented-mini {
+        display: inline-flex;
+        background: var(--bg-shell);
+        border: 1px solid var(--border-hairline);
+        border-radius: 8px;
+        padding: 2px;
+      }
+
+      .segmented-mini button {
+        border: none;
+        background: transparent;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .segmented-mini button.is-active {
+        background: #ffffff;
+        color: var(--text-main);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+
+      /* Primary & Secondary CTAs */
+      .cta-row {
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
       }
 
       .btn-ar-primary {
-        flex: 1 1 auto;
-        min-height: 48px;
-        padding: 0 16px;
-        border: none;
-        border-radius: var(--radius-control);
-        background: var(--accent-red);
-        color: #ffffff;
-        font-family: var(--font-sans);
-        font-size: 14px;
-        font-weight: 600;
-        letter-spacing: 0.01em;
-        cursor: pointer;
+        flex: 1.35;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 6px;
+        min-height: 46px;
+        padding: 10px 12px;
+        background: var(--accent-red);
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        font-family: var(--font-sans);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        transition: background-color 150ms var(--ease-out),
-          transform 120ms var(--ease-out), opacity 150ms var(--ease-out);
       }
 
       .btn-ar-primary:hover:not(:disabled) {
         background: var(--accent-red-hover);
       }
 
-      .btn-ar-primary:active:not(:disabled) {
-        transform: scale(0.985);
-      }
-
       .btn-ar-primary:disabled {
-        background: #d8d8d8;
+        background: #d4d4d4;
         color: #888888;
         cursor: not-allowed;
       }
 
-      .btn-preview-3d {
-        flex: 0 0 auto;
-        min-height: 48px;
-        min-width: 48px;
-        padding: 0 14px;
-        border-radius: var(--radius-control);
-        border: 1px solid var(--border-hairline);
-        background: var(--surface);
+      .btn-quicklook {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 10px 10px;
+        background: var(--bg-shell);
         color: var(--text-main);
+        border: 1px solid var(--border-strong);
+        border-radius: 12px;
         font-family: var(--font-sans);
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
         white-space: nowrap;
-        transition: background-color 140ms var(--ease-out),
-          opacity 140ms var(--ease-out);
       }
 
-      .btn-preview-3d:hover:not(:disabled) {
-        background: #f5f5f5;
-      }
-
-      .btn-preview-3d:disabled {
+      .btn-quicklook:disabled {
         opacity: 0.4;
         cursor: not-allowed;
       }
 
-      .sheet-guideline {
+      .env-notice {
+        display: none;
         font-size: 11px;
         line-height: 1.45;
-        color: var(--text-muted);
-        margin: 0;
-      }
-
-      .ios-browser-notice {
-        font-size: 12px;
-        line-height: 1.45;
         color: var(--accent-red);
-        margin: 0;
-        display: none;
+        background: var(--accent-red-soft);
+        padding: 7px 10px;
+        border-radius: 8px;
       }
 
-      .ios-browser-notice.is-visible {
+      .env-notice.is-visible {
         display: block;
       }
 
-      /* Hidden-by-default <model-viewer> Host (keeps WebGL scene alive for sync iOS Quick Look activation) */
-      .mv-host {
+      .panel-guideline {
+        display: none;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--text-muted);
+        padding-top: 12px;
+        border-top: 1px solid var(--border-hairline);
+      }
+
+      #imageInput,
+      #bgPhotoInput {
+        display: none;
+      }
+
+      /* =====================================================================
+       * Camera 4-Point Plane Calibration AR Overlay
+       * ===================================================================== */
+      .camera-ar-overlay {
         position: fixed;
-        left: 0;
+        inset: 0;
+        z-index: 90;
+        background: #0a0a0a;
+        color: #ffffff;
+        display: none;
+        flex-direction: column;
+        height: 100dvh;
+      }
+
+      .camera-ar-overlay.is-open {
+        display: flex;
+      }
+
+      .cam-topbar {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: calc(8px + var(--safe-top)) 12px 8px;
+        background: rgba(17, 17, 17, 0.86);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        z-index: 10;
+      }
+
+      .cam-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+        font-family: var(--font-sans);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .cam-btn.is-active {
+        background: var(--accent-red);
+        border-color: var(--accent-red);
+      }
+
+      .cam-title-meta {
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .cam-stage {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        overflow: hidden;
+        background: #111111;
+      }
+
+      #arCameraVideo {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        opacity: 0.001;
+        pointer-events: none;
+      }
+
+      #arBgCanvas,
+      #arWebglCanvas,
+      #arUiCanvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      #arBgCanvas {
+        z-index: 1;
+      }
+
+      #arWebglCanvas {
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      #arUiCanvas {
+        z-index: 3;
+        touch-action: none;
+      }
+
+      .cam-banner-hint {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 5;
+        max-width: calc(100% - 24px);
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: rgba(17, 17, 17, 0.78);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.92);
+        text-align: center;
+        pointer-events: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Floating One-Tap Reset Button directly on AR viewport */
+      .cam-floating-reset {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        z-index: 6;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        background: rgba(17, 17, 17, 0.84);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: #ffffff;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      }
+
+      .cam-floating-reset.is-shifted {
+        background: var(--accent-red);
+        border-color: var(--accent-red);
+      }
+
+      .cam-fallback-card {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 7;
+        width: min(340px, calc(100% - 32px));
+        padding: 18px;
+        border-radius: 14px;
+        background: rgba(20, 20, 22, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        text-align: center;
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .cam-fallback-card.is-visible {
+        display: flex;
+      }
+
+      .cam-fallback-card p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.84);
+      }
+
+      .cam-controls-dock {
+        flex-shrink: 0;
+        background: rgba(17, 17, 17, 0.94);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 10px 12px calc(10px + var(--safe-bottom));
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        z-index: 10;
+      }
+
+      .cam-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .cam-quad-inputs {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .cam-mini-input {
+        width: 50px;
+        height: 30px;
+        padding: 0 6px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        text-align: center;
+        outline: none;
+      }
+
+      .cam-presets {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        overflow-x: auto;
+      }
+
+      .cam-chip {
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.86);
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-family: var(--font-sans);
+        font-size: 11px;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .cam-chip.is-active {
+        background: var(--accent-red);
+        border-color: var(--accent-red);
+        color: #ffffff;
+      }
+
+      .cam-slider-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 150px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .cam-slider-wrap input[type='range'] {
+        flex: 1;
+        accent-color: var(--accent-red);
+      }
+
+      .cam-angle-val {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        min-width: 40px;
+        text-align: right;
+      }
+
+      /* =====================================================================
+       * Hidden / Modal <model-viewer> Host
+       * ===================================================================== */
+      .ar-viewer-shell {
+        position: fixed;
+        right: 0;
         bottom: 0;
         width: 2px;
         height: 2px;
         opacity: 0.001;
         pointer-events: none;
-        overflow: hidden;
         z-index: -1;
+        overflow: hidden;
       }
 
-      .mv-host.is-modal-open {
+      .ar-viewer-shell.is-modal-open {
         inset: 0;
         width: 100%;
         height: 100%;
         opacity: 1;
         pointer-events: auto;
-        z-index: 60;
-        background: rgba(17, 17, 17, 0.56);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        z-index: 120;
+        background: rgba(17, 17, 17, 0.5);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 16px;
       }
 
-      .mv-card {
+      .ar-modal-card {
         width: 100%;
         max-width: 680px;
-        height: min(76dvh, 620px);
+        height: min(80dvh, 640px);
         background: var(--surface);
-        border-radius: 20px;
-        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid var(--border-hairline);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
         display: flex;
         flex-direction: column;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
       }
 
-      .mv-card-header {
+      .ar-viewer-shell:not(.is-modal-open) .ar-modal-header,
+      .ar-viewer-shell:not(.is-modal-open) .ar-modal-footer {
         display: none;
+      }
+
+      .ar-viewer-shell:not(.is-modal-open) .ar-modal-card {
+        width: 2px;
+        height: 2px;
+        border: none;
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      .ar-modal-header {
+        display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 8px;
         padding: 12px 16px;
         border-bottom: 1px solid var(--border-hairline);
       }
 
-      .mv-host.is-modal-open .mv-card-header {
-        display: flex;
-      }
-
-      .mv-card-title {
-        font-size: 14px;
+      .ar-modal-title {
+        font-size: 15px;
         font-weight: 600;
-        color: var(--text-main);
         margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      .mv-close-btn {
-        min-height: 40px;
-        min-width: 40px;
-        border-radius: 10px;
-        border: 1px solid var(--border-hairline);
-        background: var(--surface);
-        color: var(--text-main);
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        padding: 0 12px;
-      }
-
-      .mv-stage {
-        flex: 1 1 auto;
+      .ar-modal-body {
+        flex: 1;
         min-height: 0;
+        background: var(--bg-canvas);
         position: relative;
-        background: #ebebeb;
       }
 
       model-viewer {
@@ -726,44 +1039,59 @@
         --poster-color: transparent;
       }
 
-      .mv-card-footer {
-        display: none;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+      .ar-modal-footer {
         padding: 12px 16px;
         border-top: 1px solid var(--border-hairline);
-        font-size: 12px;
-        color: var(--text-subtle);
-      }
-
-      .mv-host.is-modal-open .mv-card-footer {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
       }
 
-      .mv-footer-actions {
+      .ar-modal-note {
+        font-size: 12px;
+        color: var(--text-subtle);
+        line-height: 1.45;
+        flex: 1 1 200px;
+      }
+
+      .ar-modal-actions {
         display: flex;
         align-items: center;
         gap: 8px;
       }
 
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
+      .btn-download-gltf {
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border-strong);
+        background: var(--bg-shell);
+        color: var(--text-main);
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
       }
 
-      button:focus-visible,
-      input:focus-visible {
-        outline: 2px solid var(--accent-red);
-        outline-offset: 2px;
+      .btn-modal-ar {
+        min-height: 40px;
+        padding: 0 16px;
+        border-radius: 10px;
+        border: none;
+        background: var(--accent-red);
+        color: #ffffff;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .btn-modal-ar:disabled {
+        background: #d4d4d4;
+        color: #888888;
+        cursor: not-allowed;
       }
 
       @media (min-width: 900px) {
@@ -771,248 +1099,338 @@
           padding: 12px 24px;
         }
 
-        .studio-body {
+        .workspace-body {
           flex-direction: row;
         }
 
-        .workspace {
-          flex: 1 1 auto;
-          padding: 24px;
-        }
-
         .control-sheet {
-          flex: 0 0 380px;
+          width: 400px;
           border-top: none;
           border-left: 1px solid var(--border-hairline);
-          border-top-left-radius: 0;
-          border-top-right-radius: 0;
+          border-radius: 0;
           box-shadow: none;
-          padding: 24px;
-          justify-content: space-between;
+          padding: 22px;
+          gap: 14px;
         }
 
         .sheet-handle {
           display: none;
         }
 
-        .sheet-desktop-stack {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          transition-duration: 0.01ms !important;
-          animation-duration: 0.01ms !important;
+        .panel-guideline {
+          display: block;
+          margin-top: auto;
         }
       }
     </style>
   </head>
+
   <body>
     <div class="app-shell">
       <header class="app-header">
-        <h1 class="brand-title">尺度原型 · AR 1:1</h1>
-        <span class="header-disclaimer">仅作尺度参考 · 非工程施工标准</span>
+        <div class="brand-group">
+          <h1 class="brand-title">尺度原型</h1>
+          <span class="header-disclaimer">仅作尺度参考 · 非工程施工标准</span>
+        </div>
+        <button type="button" id="replaceImageBtn" class="btn-text" hidden>
+          更换图片
+        </button>
       </header>
 
-      <main class="studio-body">
-        <section class="workspace" id="workspaceArea" aria-label="图像校准画布">
-          <canvas
-            id="calibrationCanvas"
-            class="calibration-canvas is-empty"
-            aria-label="在图像上拖拽绘制 1:1 比例参考线段"
-          ></canvas>
+      <main class="workspace-body">
+        <section class="canvas-stage" id="canvasStage" aria-label="尺度标定画布">
+          <canvas id="calibrationCanvas" class="is-empty"></canvas>
 
-          <div class="empty-stage" id="emptyStage">
-            <div class="empty-icon" aria-hidden="true">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="3"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
-              </svg>
-            </div>
-            <h2 class="empty-title">上传平面渲染图或立面效果图</h2>
-            <p class="empty-sub">
-              支持 JPG / PNG 格式（强烈推荐带透明通道的 PNG，以便在 AR 实景中自然镂空叠加）。
-            </p>
-            <div class="empty-actions">
-              <button type="button" class="btn-secondary" id="uploadTriggerBtn">
+          <div id="canvasInstruction" class="canvas-instruction is-hidden">
+            在画面上按住拖动绘制参考线 A–B
+          </div>
+
+          <div id="emptyUploadOverlay" class="empty-upload-overlay">
+            <div class="upload-panel" id="uploadDropzone">
+              <div class="upload-icon-box" aria-hidden="true">
                 <svg
-                  width="16"
-                  height="16"
+                  width="22"
+                  height="22"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  aria-hidden="true"
                 >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
                 </svg>
-                选择图片文件
-              </button>
-              <button type="button" class="btn-ghost" id="sampleTriggerBtn">
-                加载示例展陈图
-              </button>
+              </div>
+              <h2 class="upload-title">导入 2D 展陈渲染图</h2>
+              <p class="upload-subtitle">
+                支持 JPG 或透明 PNG。若画面本身带有透视，可标注两条等高物体（如两根等高灯柱）自动矫正透视比例。
+              </p>
+              <div class="upload-actions">
+                <button type="button" id="uploadTriggerBtn" class="btn-solid-dark">
+                  选择本地图片 (PNG / JPG)
+                </button>
+                <button type="button" id="loadSampleBtn" class="btn-ghost">
+                  加载正交示例图（含 2.0m 参照柱）
+                </button>
+                <button type="button" id="loadPerspSampleBtn" class="btn-ghost">
+                  加载透视示例图（含近远双 2.0m 灯柱）
+                </button>
+              </div>
+              <p class="render-guideline">
+                渲染建议：推荐使用 35mm–50mm 焦段或正交投影。如使用带透视角度的效果图，绘制 A–B 后可点击「+ 等高透视线 C–D」辅助识别景深与视平线。
+              </p>
             </div>
-            <p class="guideline-note">
-              渲染建议：推荐使用 35mm–50mm 焦段或正交投影，避免超广角 (&lt;24mm) 导致 AR 透视畸变。
-            </p>
           </div>
-
-          <div class="canvas-toolbar is-hidden" id="canvasToolbar">
-            <button type="button" class="tool-btn" id="clearLineBtn" disabled>
-              清除线段
-            </button>
-            <button type="button" class="tool-btn" id="replaceImageBtn">
-              更换图片
-            </button>
-          </div>
-
-          <div class="canvas-hint is-hidden" id="canvasHint">
-            在图上拖拽绘制已知尺寸的参考线段 A → B
-          </div>
-
-          <input
-            type="file"
-            id="imageInput"
-            class="sr-only"
-            accept="image/png,image/jpeg,image/webp"
-          />
         </section>
 
-        <aside class="control-sheet" aria-label="尺度参数与 AR 投影控制">
+        <aside class="control-sheet" aria-label="尺度标定与 AR 控制面板">
           <div class="sheet-handle" aria-hidden="true"></div>
 
-          <div class="sheet-desktop-stack">
-            <div class="meta-strip" id="metaStrip" aria-live="polite">
-              <span>等待上传图像</span>
-            </div>
-
-            <div class="calibration-row">
-              <div class="field-group">
-                <label class="field-label" for="realLengthInput">
-                  <span>参考线段实际长度</span>
-                  <span class="field-sub">默认单位：米</span>
-                </label>
-                <div class="input-shell">
-                  <input
-                    id="realLengthInput"
-                    class="dimension-input"
-                    type="number"
-                    inputmode="decimal"
-                    step="0.01"
-                    min="0.01"
-                    max="500"
-                    value="2.0"
-                    placeholder="2.0"
-                  />
-                  <span class="input-unit">米 (m)</span>
-                </div>
-              </div>
-
-              <div class="preset-group" aria-label="常用参照高度">
-                <button type="button" class="preset-btn" data-meters="1.7">
-                  1.7m
-                </button>
-                <button
-                  type="button"
-                  class="preset-btn is-active"
-                  data-meters="2.0"
-                >
-                  2.0m
-                </button>
-                <button type="button" class="preset-btn" data-meters="3.0">
-                  3.0m
-                </button>
-              </div>
-            </div>
-
-            <p class="sheet-guideline">
-              渲染建议：使用 35mm–50mm 焦段或正交立面图，避免 &lt;24mm 超广角导致 AR 空间透视失真。
-            </p>
-
-            <p class="ios-browser-notice" id="iosBrowserNotice">
-              检测到当前处于应用内浏览器。如需调用苹果 AR Quick Look 实景锚定，请点击右上角选择“在 Safari 中打开”。
-            </p>
+          <div class="metrics-line" id="metricsLine">
+            <span>等待导入图片</span>
           </div>
 
-          <div class="cta-row">
+          <!-- Primary Line Length + Perspective Line C-D Toggle -->
+          <div class="dimension-row">
+            <label class="input-field-wrap" for="realLengthInput">
+              <span class="input-label">参照物实际高度</span>
+              <span class="input-value-box">
+                <input
+                  id="realLengthInput"
+                  type="number"
+                  inputmode="decimal"
+                  step="0.01"
+                  min="0.01"
+                  value="2.0"
+                  aria-label="参照物实际高度（米）"
+                />
+                <span class="input-unit">m</span>
+              </span>
+            </label>
             <button
               type="button"
-              class="btn-ar-primary"
-              id="viewArBtn"
+              id="togglePerspLineBtn"
+              class="btn-tool"
+              disabled
+              title="标注第二个与 A–B 实际等高的物体（如远处灯柱）来解算画面透视"
+            >
+              + 等高线 C–D
+            </button>
+            <button
+              type="button"
+              id="clearLineBtn"
+              class="btn-tool"
               disabled
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
+              重画
+            </button>
+          </div>
+
+          <!-- Perspective rectification + AR Quick Look options -->
+          <div class="perspective-row">
+            <label class="check-label" id="rectifyWrap" hidden>
+              <input type="checkbox" id="rectifyPerspChk" checked />
+              <span>透视展平为 1:1 正立面</span>
+            </label>
+
+            <label class="check-label">
+              <input type="checkbox" id="includeScaleGuidesChk" checked />
+              <span>附带尺标与 1.70m 人高参照</span>
+            </label>
+
+            <div class="segmented-mini" role="group" aria-label="Quick Look 锚定方式">
+              <button
+                type="button"
+                class="placement-btn is-active"
+                data-placement="floor"
               >
-                <path
-                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
-                ></path>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-              </svg>
-              <span id="viewArBtnLabel">AR 1:1 实景投影</span>
+                地面立放
+              </button>
+              <button type="button" class="placement-btn" data-placement="wall">
+                墙面贴挂
+              </button>
+            </div>
+          </div>
+
+          <div id="envNotice" class="env-notice" role="status"></div>
+
+          <div class="cta-row">
+            <button type="button" id="openCameraArBtn" class="btn-ar-primary" disabled>
+              <span>4 点定标实景 AR</span>
             </button>
             <button
               type="button"
-              class="btn-preview-3d"
-              id="preview3dBtn"
+              id="viewInQuickLookBtn"
+              class="btn-quicklook"
               disabled
-              title="3D 空间预览"
             >
-              3D 预览
+              <span>苹果 AR / 3D</span>
             </button>
+          </div>
+
+          <div class="panel-guideline">
+            小提示：绘制完 A–B 后，若画面存在明显近大远小透视，可点击「+ 等高线 C–D」再标定另一根等高灯柱/立柱，系统会自动识别视平线并还原真实 1:1 比例。
           </div>
         </aside>
       </main>
     </div>
 
-    <!-- Offset Magnifier Loupe (-60px Y-axis offset, 2x zoomed pixels + crosshair) -->
-    <div class="magnifier-loupe" id="magnifierLoupe" aria-hidden="true">
-      <canvas
-        id="magnifierCanvas"
-        class="magnifier-canvas"
-        width="208"
-        height="208"
-      ></canvas>
-    </div>
+    <!-- ===================================================================
+         Camera 4-Point Plane Calibration AR Workspace
+         =================================================================== -->
+    <section
+      id="cameraArOverlay"
+      class="camera-ar-overlay"
+      aria-label="相机 4 点平面定标 AR 界面"
+    >
+      <div class="cam-topbar">
+        <button type="button" id="camCloseBtn" class="cam-btn">返回</button>
+        <span class="cam-title-meta" id="camTitleMeta">4 点地面定标</span>
+        <div style="display: flex; gap: 6px">
+          <button type="button" id="camFreezeBtn" class="cam-btn">定格画面</button>
+          <button type="button" id="camUploadBgBtn" class="cam-btn">选实拍图</button>
+        </div>
+      </div>
 
-    <!-- <model-viewer> Host: Always mounted for synchronous iOS AR Quick Look / WebXR activation -->
-    <div class="mv-host" id="mvHost" aria-hidden="true">
-      <div class="mv-card">
-        <div class="mv-card-header">
-          <h2 class="mv-card-title" id="mvModalTitle">1:1 空间展板预览</h2>
-          <button type="button" class="mv-close-btn" id="mvCloseBtn">
-            关闭
+      <div class="cam-stage" id="camStage">
+        <video id="arCameraVideo" playsinline muted autoplay></video>
+        <canvas id="arBgCanvas"></canvas>
+        <canvas id="arWebglCanvas"></canvas>
+        <canvas id="arUiCanvas"></canvas>
+
+        <div class="cam-banner-hint" id="camBannerHint">
+          拖拽 1–4 角点对齐地面已知矩形 · 单指滑动画面可平移展板
+        </div>
+
+        <!-- Always reachable one-tap reset button -->
+        <button
+          type="button"
+          id="camFloatingResetBtn"
+          class="cam-floating-reset"
+          title="将展板一键归位到 4 点锚定中心"
+        >
+          一键归位
+        </button>
+
+        <div class="cam-fallback-card" id="camFallbackCard">
+          <p id="camFallbackMsg">
+            未检测到可用后置摄像头或相机权限未开启。您可以加载内置展厅实景底图，或上传手机相册中的现场照片进行 4 点定标测试。
+          </p>
+          <button type="button" id="camUseSampleBgBtn" class="btn-ar-primary">
+            加载示例展厅实拍图
+          </button>
+          <button type="button" id="camFallbackUploadBtn" class="cam-btn">
+            从相册选择现场照片
           </button>
         </div>
-        <div class="mv-stage">
+      </div>
+
+      <div class="cam-controls-dock">
+        <div class="cam-row">
+          <div class="cam-quad-inputs">
+            <span>地面框</span>
+            <input
+              id="quadWidthInput"
+              class="cam-mini-input"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              min="0.1"
+              value="1.0"
+              aria-label="地面参照矩形宽（米）"
+            />
+            <span>×</span>
+            <input
+              id="quadDepthInput"
+              class="cam-mini-input"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              min="0.1"
+              value="1.0"
+              aria-label="地面参照矩形深（米）"
+            />
+            <span>m</span>
+          </div>
+
+          <div class="cam-presets">
+            <button type="button" class="cam-chip" data-qw="0.6" data-qd="0.6">
+              0.6×0.6 地砖
+            </button>
+            <button type="button" class="cam-chip is-active" data-qw="1.0" data-qd="1.0">
+              1.0×1.0m
+            </button>
+            <button type="button" class="cam-chip" data-qw="2.0" data-qd="1.0">
+              2.0×1.0m
+            </button>
+          </div>
+        </div>
+
+        <div class="cam-row">
+          <label class="cam-slider-wrap">
+            <span>朝向</span>
+            <input
+              id="camHeadingSlider"
+              type="range"
+              min="-180"
+              max="180"
+              step="1"
+              value="0"
+            />
+            <span class="cam-angle-val" id="camHeadingVal">0°</span>
+          </label>
+
+          <div style="display: flex; gap: 6px; flex-shrink: 0">
+            <button type="button" id="camToggleGuidesBtn" class="cam-btn is-active">
+              标定框
+            </button>
+            <button type="button" id="camSnapshotBtn" class="cam-btn">保存图片</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shared Offset Magnifier Loupe (-60px Y-axis, 2x zoom) -->
+    <div id="magnifierLoupe" class="magnifier-loupe" aria-hidden="true">
+      <canvas id="magnifierCanvas" width="216" height="216"></canvas>
+      <div class="magnifier-crosshair"></div>
+      <span class="magnifier-label">2×</span>
+    </div>
+
+    <input
+      id="imageInput"
+      type="file"
+      accept="image/png,image/jpeg,image/webp"
+      aria-label="上传展陈渲染图"
+    />
+    <input
+      id="bgPhotoInput"
+      type="file"
+      accept="image/png,image/jpeg,image/webp"
+      aria-label="上传现场地面照片"
+    />
+
+    <!-- Model Viewer Shell -->
+    <div
+      id="arViewerShell"
+      class="ar-viewer-shell"
+      role="dialog"
+      aria-modal="true"
+      aria-label="3D 展板空间预览"
+    >
+      <div class="ar-modal-card">
+        <div class="ar-modal-header">
+          <h3 class="ar-modal-title" id="arModalTitle">1:1 空间展板预览</h3>
+          <div style="display: flex; align-items: center; gap: 4px">
+            <button type="button" id="reset3dCameraBtn" class="btn-text">
+              归位视角
+            </button>
+            <button type="button" id="closeModalBtn" class="btn-text">关闭</button>
+          </div>
+        </div>
+        <div class="ar-modal-body">
           <model-viewer
             id="arModelViewer"
             ar
@@ -1021,20 +1439,23 @@
             ar-placement="floor"
             camera-controls
             touch-action="pan-y"
-            shadow-intensity="0.35"
-            alt="1:1 实景 AR 展陈平面"
+            shadow-intensity="0.4"
+            exposure="1.0"
             loading="eager"
             reveal="auto"
+            alt="1:1 实景 AR 展陈展板"
           ></model-viewer>
         </div>
-        <div class="mv-card-footer">
-          <span id="mvFooterDims">请使用 iPhone / iPad Safari 打开本页即可直接进入苹果 AR 实景模式。</span>
-          <div class="mv-footer-actions">
-            <button type="button" class="tool-btn" id="downloadGltfBtn">
+        <div class="ar-modal-footer">
+          <span class="ar-modal-note" id="arModalNote">
+            提示：在苹果 AR Quick Look 中，请慢速移动手机扫描地面，出现投影后单指轻点锁定位置。
+          </span>
+          <div class="ar-modal-actions">
+            <button type="button" id="downloadGltfBtn" class="btn-download-gltf">
               导出 glTF
             </button>
-            <button type="button" class="tool-btn" id="mvModalArBtn">
-              启动 AR 模式
+            <button type="button" id="modalActivateArBtn" class="btn-modal-ar">
+              启动苹果 AR
             </button>
           </div>
         </div>
@@ -1046,165 +1467,392 @@
         'use strict';
 
         // =====================================================================
-        // 1. DOM References & Application State
+        // 1. State
         // =====================================================================
-        const workspaceArea = document.getElementById('workspaceArea');
+        const state = {
+          image: null,
+          imageMime: 'image/png',
+          hasAlpha: true,
+          naturalWidth: 0,
+          naturalHeight: 0,
+          rawTextureDataUrl: '', // Original prepared texture (max 2048px)
+
+          // Line 1 (A-B) & Optional Line 2 (C-D) in intrinsic image pixels
+          line: { a: null, b: null },
+          perspLine: { c: null, d: null },
+          activeDrawTarget: 'primary', // 'primary' | 'persp'
+          rectifyPerspective: true,
+
+          // Output texture & real dimensions fed to AR / 3D (either raw or rectified)
+          activeTextureDataUrl: '',
+          activeTextureSource: null, // HTMLCanvasElement or HTMLImageElement for WebGL
+          activeHasAlpha: true,
+          perspectiveInfo: null, // { yawDeg, depthRatio, vanishingPt, rectRealWidth, rectRealHeight }
+
+          viewportRect: { x: 0, y: 0, w: 0, h: 0, scale: 1 },
+          dragMode: null, // 'newAB' | 'moveA' | 'moveB' | 'newCD' | 'moveC' | 'moveD'
+          activePointerId: null,
+
+          realLengthMeters: 2.0,
+          linePx: 0,
+          metersPerPx: 0,
+          realWidthMeters: 0,
+          realHeightMeters: 0,
+
+          includeScaleGuides: true,
+          arPlacement: 'floor',
+          gltfDataUri: '',
+          gltfDirty: false,
+          modelLoaded: false,
+        };
+
+        // =====================================================================
+        // 2. DOM References
+        // =====================================================================
+        const canvasStage = document.getElementById('canvasStage');
         const canvas = document.getElementById('calibrationCanvas');
         const ctx = canvas.getContext('2d');
 
-        const emptyStage = document.getElementById('emptyStage');
+        const emptyUploadOverlay = document.getElementById('emptyUploadOverlay');
+        const uploadDropzone = document.getElementById('uploadDropzone');
         const uploadTriggerBtn = document.getElementById('uploadTriggerBtn');
-        const sampleTriggerBtn = document.getElementById('sampleTriggerBtn');
+        const loadSampleBtn = document.getElementById('loadSampleBtn');
+        const loadPerspSampleBtn = document.getElementById('loadPerspSampleBtn');
         const replaceImageBtn = document.getElementById('replaceImageBtn');
-        const clearLineBtn = document.getElementById('clearLineBtn');
-        const canvasToolbar = document.getElementById('canvasToolbar');
-        const canvasHint = document.getElementById('canvasHint');
         const imageInput = document.getElementById('imageInput');
+        const bgPhotoInput = document.getElementById('bgPhotoInput');
 
+        const canvasInstruction = document.getElementById('canvasInstruction');
         const magnifierLoupe = document.getElementById('magnifierLoupe');
         const magnifierCanvas = document.getElementById('magnifierCanvas');
-        const magnifierCtx = magnifierCanvas.getContext('2d');
+        const magCtx = magnifierCanvas.getContext('2d');
 
-        const metaStrip = document.getElementById('metaStrip');
+        const metricsLine = document.getElementById('metricsLine');
         const realLengthInput = document.getElementById('realLengthInput');
-        const presetButtons = Array.from(
-          document.querySelectorAll('.preset-btn')
-        );
-        const viewArBtn = document.getElementById('viewArBtn');
-        const viewArBtnLabel = document.getElementById('viewArBtnLabel');
-        const preview3dBtn = document.getElementById('preview3dBtn');
-        const iosBrowserNotice = document.getElementById('iosBrowserNotice');
+        const togglePerspLineBtn = document.getElementById('togglePerspLineBtn');
+        const clearLineBtn = document.getElementById('clearLineBtn');
+        const rectifyWrap = document.getElementById('rectifyWrap');
+        const rectifyPerspChk = document.getElementById('rectifyPerspChk');
+        const includeScaleGuidesChk = document.getElementById('includeScaleGuidesChk');
+        const placementButtons = document.querySelectorAll('.placement-btn');
 
-        const mvHost = document.getElementById('mvHost');
-        const arModelViewer = document.getElementById('arModelViewer');
-        const mvCloseBtn = document.getElementById('mvCloseBtn');
-        const mvModalArBtn = document.getElementById('mvModalArBtn');
+        const openCameraArBtn = document.getElementById('openCameraArBtn');
+        const viewInQuickLookBtn = document.getElementById('viewInQuickLookBtn');
+        const envNotice = document.getElementById('envNotice');
+
+        const arViewerShell = document.getElementById('arViewerShell');
+        const modelViewer = document.getElementById('arModelViewer');
+        const reset3dCameraBtn = document.getElementById('reset3dCameraBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const arModalTitle = document.getElementById('arModalTitle');
+        const arModalNote = document.getElementById('arModalNote');
         const downloadGltfBtn = document.getElementById('downloadGltfBtn');
-        const mvModalTitle = document.getElementById('mvModalTitle');
-        const mvFooterDims = document.getElementById('mvFooterDims');
+        const modalActivateArBtn = document.getElementById('modalActivateArBtn');
 
-        // Core calibration & image state (all coordinates in intrinsic image pixels)
-        const state = {
-          image: null,
-          intrinsicWidth: 0,
-          intrinsicHeight: 0,
-          hasAlpha: false,
-          textureDataUrl: '',
-          drawRect: { x: 0, y: 0, w: 0, h: 0, scale: 1 },
-          pointA: null,
-          pointB: null,
-          dragMode: null,
-          activePointerId: null,
-          gltfDataUri: '',
-          arModelReady: false,
-          rebuildTimer: null,
-        };
+        // Camera AR DOM
+        const cameraArOverlay = document.getElementById('cameraArOverlay');
+        const camStage = document.getElementById('camStage');
+        const arCameraVideo = document.getElementById('arCameraVideo');
+        const arBgCanvas = document.getElementById('arBgCanvas');
+        const arBgCtx = arBgCanvas.getContext('2d');
+        const arWebglCanvas = document.getElementById('arWebglCanvas');
+        const arUiCanvas = document.getElementById('arUiCanvas');
+        const arUiCtx = arUiCanvas.getContext('2d');
 
-        // Platform detection for Apple iOS Safari vs In-App WebViews (WeChat/Chrome iOS)
-        const ua = navigator.userAgent || '';
-        const isIOS =
-          /iPad|iPhone|iPod/.test(ua) ||
-          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        const isIOSSafari =
-          isIOS &&
-          /Safari/.test(ua) &&
-          !/CriOS|FxiOS|EdgiOS|OPiOS|MicroMessenger|MQQBrowser|DingTalk/.test(
-            ua
+        const camCloseBtn = document.getElementById('camCloseBtn');
+        const camTitleMeta = document.getElementById('camTitleMeta');
+        const camFreezeBtn = document.getElementById('camFreezeBtn');
+        const camUploadBgBtn = document.getElementById('camUploadBgBtn');
+        const camBannerHint = document.getElementById('camBannerHint');
+        const camFloatingResetBtn = document.getElementById('camFloatingResetBtn');
+        const camFallbackCard = document.getElementById('camFallbackCard');
+        const camUseSampleBgBtn = document.getElementById('camUseSampleBgBtn');
+        const camFallbackUploadBtn = document.getElementById('camFallbackUploadBtn');
+
+        const quadWidthInput = document.getElementById('quadWidthInput');
+        const quadDepthInput = document.getElementById('quadDepthInput');
+        const camPresets = document.querySelectorAll('.cam-chip');
+        const camHeadingSlider = document.getElementById('camHeadingSlider');
+        const camHeadingVal = document.getElementById('camHeadingVal');
+        const camToggleGuidesBtn = document.getElementById('camToggleGuidesBtn');
+        const camSnapshotBtn = document.getElementById('camSnapshotBtn');
+
+        const ACCENT_RED = '#E53935';
+        const ACCENT_BLUE = '#0284C7';
+        const ENDPOINT_HIT_RADIUS_CSS = 28;
+        const LOUPE_OFFSET_Y = -60;
+        const LOUPE_SIZE_CSS = 108;
+        const LOUPE_ZOOM = 2;
+
+        // =====================================================================
+        // 3. Environment Detection
+        // =====================================================================
+        function detectAppleEnvironment() {
+          const ua = navigator.userAgent || '';
+          const isIOS =
+            /iPad|iPhone|iPod/.test(ua) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+          const isInAppOrAltIOS =
+            isIOS &&
+            /CriOS|FxiOS|EdgiOS|OPiOS|MicroMessenger|QQ\/|Weibo|ByteLocale/i.test(
+              ua
+            );
+
+          if (isInAppOrAltIOS) {
+            envNotice.textContent =
+              '提示：当前非 Safari 浏览器，苹果 AR Quick Look 仅支持 Safari；可直接使用「4 点定标实景 AR」。';
+            envNotice.classList.add('is-visible');
+          } else {
+            envNotice.classList.remove('is-visible');
+          }
+          return { isIOS, isInAppOrAltIOS };
+        }
+        const envInfo = detectAppleEnvironment();
+
+        // =====================================================================
+        // 4. Math & Canvas Helpers
+        // =====================================================================
+        function drawRoundedRectPath(targetCtx, x, y, w, h, r) {
+          const radius = Math.min(r, w / 2, h / 2);
+          targetCtx.beginPath();
+          targetCtx.moveTo(x + radius, y);
+          targetCtx.lineTo(x + w - radius, y);
+          targetCtx.quadraticCurveTo(x + w, y, x + w, y + radius);
+          targetCtx.lineTo(x + w, y + h - radius);
+          targetCtx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+          targetCtx.lineTo(x + radius, y + h);
+          targetCtx.quadraticCurveTo(x, y + h, x, y + h - radius);
+          targetCtx.lineTo(x, y + radius);
+          targetCtx.quadraticCurveTo(x, y, x + radius, y);
+          targetCtx.closePath();
+        }
+
+        function drawCheckerboard(targetCtx, x, y, w, h, cellSize) {
+          targetCtx.save();
+          targetCtx.beginPath();
+          targetCtx.rect(x, y, w, h);
+          targetCtx.clip();
+          targetCtx.fillStyle = '#F7F7F7';
+          targetCtx.fillRect(x, y, w, h);
+          targetCtx.fillStyle = '#E6E6E6';
+          const cols = Math.ceil(w / cellSize);
+          const rows = Math.ceil(h / cellSize);
+          for (let r = 0; r < rows; r++) {
+            for (let c = r % 2; c < cols; c += 2) {
+              targetCtx.fillRect(
+                x + c * cellSize,
+                y + r * cellSize,
+                cellSize,
+                cellSize
+              );
+            }
+          }
+          targetCtx.restore();
+        }
+
+        function showMagnifierAt(clientX, clientY, drawContentFn) {
+          const halfLoupe = LOUPE_SIZE_CSS / 2;
+          const clampedX = Math.max(
+            halfLoupe + 8,
+            Math.min(window.innerWidth - halfLoupe - 8, clientX)
           );
+          const clampedY = Math.max(halfLoupe + 8, clientY + LOUPE_OFFSET_Y);
 
-        if (isIOS && !isIOSSafari) {
-          iosBrowserNotice.classList.add('is-visible');
+          magnifierLoupe.style.left = clampedX + 'px';
+          magnifierLoupe.style.top = clampedY + 'px';
+          magnifierLoupe.classList.add('is-active');
+
+          const magW = magnifierCanvas.width;
+          const magH = magnifierCanvas.height;
+          magCtx.clearRect(0, 0, magW, magH);
+          drawContentFn(magCtx, magW, magH);
+        }
+
+        function hideMagnifier() {
+          magnifierLoupe.classList.remove('is-active');
+        }
+
+        function solveLinear8(A, b) {
+          const n = 8;
+          const M = A.map((row, i) => [...row, b[i]]);
+          for (let col = 0; col < n; col++) {
+            let maxRow = col;
+            let maxVal = Math.abs(M[col][col]);
+            for (let r = col + 1; r < n; r++) {
+              if (Math.abs(M[r][col]) > maxVal) {
+                maxVal = Math.abs(M[r][col]);
+                maxRow = r;
+              }
+            }
+            if (maxVal < 1e-10) return null;
+            if (maxRow !== col) {
+              const tmp = M[col];
+              M[col] = M[maxRow];
+              M[maxRow] = tmp;
+            }
+            const pivot = M[col][col];
+            for (let r = col + 1; r < n; r++) {
+              const factor = M[r][col] / pivot;
+              for (let c = col; c <= n; c++) {
+                M[r][c] -= factor * M[col][c];
+              }
+            }
+          }
+          const x = new Array(n).fill(0);
+          for (let r = n - 1; r >= 0; r--) {
+            let sum = M[r][n];
+            for (let c = r + 1; c < n; c++) {
+              sum -= M[r][c] * x[c];
+            }
+            x[r] = sum / M[r][r];
+          }
+          return x;
+        }
+
+        function solveHomography2D(srcPts, dstPts) {
+          const A = [];
+          const b = [];
+          for (let i = 0; i < 4; i++) {
+            const x = srcPts[i][0];
+            const y = srcPts[i][1];
+            const u = dstPts[i][0];
+            const v = dstPts[i][1];
+            A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]);
+            b.push(u);
+            A.push([0, 0, 0, x, y, 1, -v * x, -v * y]);
+            b.push(v);
+          }
+          const h = solveLinear8(A, b);
+          if (!h) return null;
+          return [h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1];
+        }
+
+        function applyHomography(H, x, y) {
+          const denom = H[6] * x + H[7] * y + H[8];
+          if (Math.abs(denom) < 1e-7) return null;
+          return {
+            x: (H[0] * x + H[1] * y + H[2]) / denom,
+            y: (H[3] * x + H[4] * y + H[5]) / denom,
+            denom,
+          };
+        }
+
+        function lineIntersection2D(p1, p2, p3, p4) {
+          const d =
+            (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
+          if (Math.abs(d) < 1e-4) return null;
+          const t1 = p1.x * p2.y - p1.y * p2.x;
+          const t2 = p3.x * p4.y - p3.y * p4.x;
+          return {
+            x: (t1 * (p3.x - p4.x) - (p1.x - p2.x) * t2) / d,
+            y: (t1 * (p3.y - p4.y) - (p1.y - p2.y) * t2) / d,
+          };
         }
 
         // =====================================================================
-        // 2. Image Loading, Alpha Detection & Texture Preparation
+        // 5. Image Loading & Sample Generators (Orthographic + Perspective)
         // =====================================================================
-
         function handleImageFile(file) {
-          if (!file || !file.type.startsWith('image/')) {
+          if (!file) return;
+          if (!/^image\/(png|jpeg|webp)$/i.test(file.type)) {
+            metricsLine.innerHTML =
+              '<span style="color:#E53935">请选择 JPG、PNG 或 WebP 格式图片</span>';
             return;
           }
           const reader = new FileReader();
-          reader.onload = function (event) {
-            loadImageFromSource(event.target.result, file.type === 'image/png');
+          reader.onload = function (evt) {
+            loadImageFromDataUrl(evt.target.result, file.type || 'image/png');
           };
           reader.readAsDataURL(file);
         }
 
-        function loadImageFromSource(src, mightHaveAlpha) {
+        function loadImageFromDataUrl(dataUrl, mimeType) {
           const img = new Image();
           img.onload = function () {
             state.image = img;
-            state.intrinsicWidth = img.naturalWidth || img.width;
-            state.intrinsicHeight = img.naturalHeight || img.height;
+            state.naturalWidth = img.naturalWidth || img.width;
+            state.naturalHeight = img.naturalHeight || img.height;
+            state.imageMime =
+              mimeType === 'image/jpeg' ? 'image/jpeg' : 'image/png';
 
-            const prepared = prepareTextureAndAlpha(img, mightHaveAlpha);
-            state.textureDataUrl = prepared.dataUrl;
+            const prepared = prepareTextureForGltf(img, state.imageMime);
+            state.rawTextureDataUrl = prepared.dataUrl;
             state.hasAlpha = prepared.hasAlpha;
+            state.activeTextureDataUrl = prepared.dataUrl;
+            state.activeTextureSource = img;
+            state.activeHasAlpha = prepared.hasAlpha;
 
-            state.pointA = null;
-            state.pointB = null;
+            state.line.a = null;
+            state.line.b = null;
+            state.perspLine.c = null;
+            state.perspLine.d = null;
+            state.activeDrawTarget = 'primary';
+            state.perspectiveInfo = null;
             state.gltfDataUri = '';
-            state.arModelReady = false;
+            state.gltfDirty = false;
+            state.modelLoaded = false;
 
-            emptyStage.classList.add('is-hidden');
+            togglePerspLineBtn.classList.remove('is-blue-active');
+            togglePerspLineBtn.textContent = '+ 等高线 C–D';
+            rectifyWrap.hidden = true;
+
+            emptyUploadOverlay.classList.add('is-hidden');
             canvas.classList.remove('is-empty');
-            canvasToolbar.classList.remove('is-hidden');
-            canvasHint.classList.remove('is-hidden');
-            canvasHint.textContent = '在图上拖拽绘制已知尺寸的参考线段 A → B';
+            replaceImageBtn.hidden = false;
+            canvasInstruction.textContent = '在画面上按住拖动绘制参考线 A–B';
+            canvasInstruction.classList.remove('is-hidden');
 
-            resizeCanvas();
-            updateMetricsAndUI('none');
+            resizeCanvasAndDraw();
+            recalculateScaleAndModel(false);
           };
-          img.src = src;
+          img.src = dataUrl;
         }
 
-        /**
-         * Downsamples oversized textures to max 2048px for iOS Safari WebGL safety
-         * while preserving exact intrinsic imageWidth/imageHeight for scale calculations.
-         */
-        function prepareTextureAndAlpha(img, checkAlpha) {
-          const maxTexSize = 2048;
+        function prepareTextureForGltf(img, preferredMime) {
+          const maxDim = 2048;
           const origW = img.naturalWidth || img.width;
           const origH = img.naturalHeight || img.height;
-          const ratio = Math.min(1, maxTexSize / Math.max(origW, origH));
-          const texW = Math.max(1, Math.round(origW * ratio));
-          const texH = Math.max(1, Math.round(origH * ratio));
+          let targetW = origW;
+          let targetH = origH;
+
+          if (Math.max(origW, origH) > maxDim) {
+            const ratio = maxDim / Math.max(origW, origH);
+            targetW = Math.max(1, Math.round(origW * ratio));
+            targetH = Math.max(1, Math.round(origH * ratio));
+          }
 
           const offscreen = document.createElement('canvas');
-          offscreen.width = texW;
-          offscreen.height = texH;
+          offscreen.width = targetW;
+          offscreen.height = targetH;
           const octx = offscreen.getContext('2d');
-          octx.clearRect(0, 0, texW, texH);
-          octx.drawImage(img, 0, 0, texW, texH);
+          octx.drawImage(img, 0, 0, targetW, targetH);
 
           let hasAlpha = false;
-          if (checkAlpha) {
+          if (preferredMime === 'image/png') {
             try {
-              const pixels = octx.getImageData(0, 0, texW, texH).data;
-              const stride = Math.max(4, Math.floor(pixels.length / 40000) * 4);
-              for (let i = 3; i < pixels.length; i += stride) {
+              const sampleStep = Math.max(
+                1,
+                Math.floor((targetW * targetH) / 4000)
+              );
+              const pixels = octx.getImageData(0, 0, targetW, targetH).data;
+              for (let i = 3; i < pixels.length; i += 4 * sampleStep) {
                 if (pixels[i] < 250) {
                   hasAlpha = true;
                   break;
                 }
               }
-            } catch (e) {
+            } catch (_) {
               hasAlpha = true;
             }
           }
 
-          const dataUrl = hasAlpha
-            ? offscreen.toDataURL('image/png')
-            : offscreen.toDataURL('image/jpeg', 0.9);
-
-          return { dataUrl, hasAlpha };
+          const outputMime = hasAlpha ? 'image/png' : 'image/jpeg';
+          return {
+            dataUrl: offscreen.toDataURL(outputMime, hasAlpha ? undefined : 0.9),
+            hasAlpha,
+          };
         }
 
-        /**
-         * Procedural transparent PNG exhibition render with a 2.00m reference pillar
-         * so designers can test calibration & AR immediately on any device.
-         */
         function generateSampleExhibitionRender() {
           const w = 1200;
           const h = 900;
@@ -1214,467 +1862,885 @@
           const g = c.getContext('2d');
           g.clearRect(0, 0, w, h);
 
-          // Main exhibition display monolith
-          g.fillStyle = '#1C1D21';
-          g.fillRect(180, 120, 620, 740);
-
-          // Inner warm architectural frame
-          g.fillStyle = '#F2EFE9';
-          g.fillRect(216, 156, 548, 490);
-
-          // Abstract geometric new-media artwork
-          g.fillStyle = '#D94336';
-          g.beginPath();
-          g.arc(490, 380, 145, 0, Math.PI * 2);
+          g.fillStyle = '#F3F2EE';
+          g.strokeStyle = '#1D1D1F';
+          g.lineWidth = 3;
+          drawRoundedRectPath(g, 140, 140, 760, 680, 12);
           g.fill();
+          g.stroke();
 
-          g.fillStyle = '#111111';
-          g.fillRect(310, 440, 360, 16);
-          g.fillRect(310, 474, 240, 8);
+          const grad = g.createLinearGradient(210, 220, 830, 600);
+          grad.addColorStop(0, '#18181B');
+          grad.addColorStop(1, '#27272A');
+          g.fillStyle = grad;
+          g.fillRect(210, 220, 620, 380);
 
-          // Exhibition title block
+          g.strokeStyle = 'rgba(255,255,255,0.22)';
+          g.lineWidth = 2;
+          for (let i = 0; i < 6; i++) {
+            g.beginPath();
+            g.arc(520, 410, 48 + i * 28, 0, Math.PI * 2);
+            g.stroke();
+          }
+
+          g.fillStyle = '#E53935';
+          g.fillRect(250, 260, 44, 6);
           g.fillStyle = '#FFFFFF';
           g.font = '600 28px sans-serif';
-          g.fillText('SPACE & PROPORTION 01', 218, 706);
-          g.fillStyle = '#999999';
+          g.fillText('EXHIBITION WALL 01', 250, 315);
+          g.fillStyle = 'rgba(255,255,255,0.65)';
           g.font = '400 18px sans-serif';
-          g.fillText('2.48 m × 2.96 m 展陈主视觉立面', 218, 744);
+          g.fillText('ORTHOGRAPHIC SCALE PROTOTYPE', 250, 348);
 
-          // 2.00m Reference Pillar on the right (x=910..1000, y=360..860)
-          g.fillStyle = '#2B2C30';
-          g.fillRect(910, 360, 90, 500);
-          g.fillStyle = '#FFFFFF';
-          g.fillRect(910, 360, 90, 6);
-          g.fillRect(910, 854, 90, 6);
+          g.fillStyle = '#E4E2DC';
+          g.fillRect(210, 660, 620, 160);
+          g.strokeStyle = '#C8C5BD';
+          g.lineWidth = 2;
+          g.strokeRect(210, 660, 620, 160);
 
-          g.fillStyle = 'rgba(255,255,255,0.45)';
-          for (let y = 410; y < 850; y += 50) {
-            g.fillRect(910, y, 22, 2);
-          }
-          g.fillStyle = '#FFFFFF';
+          g.fillStyle = '#1C1C1E';
+          g.fillRect(956, 220, 36, 600);
+          g.fillStyle = '#E53935';
+          g.fillRect(944, 220, 60, 6);
+          g.fillRect(944, 814, 60, 6);
+
+          g.fillStyle = '#111111';
           g.font = '600 20px monospace';
-          g.fillText('2.0m', 926, 616);
+          g.fillText('2.00 m', 1012, 526);
+          g.fillStyle = '#666666';
+          g.font = '400 15px sans-serif';
+          g.fillText('参照立柱', 1012, 552);
 
-          // Ground shadow baseline
-          g.fillStyle = 'rgba(0,0,0,0.22)';
-          g.fillRect(160, 860, 860, 8);
+          loadImageFromDataUrl(c.toDataURL('image/png'), 'image/png');
+        }
 
-          loadImageFromSource(c.toDataURL('image/png'), true);
+        /**
+         * Generates a perspective architectural corridor exhibition render with
+         * TWO equal-height 2.00m light pillars (near left + far right) for testing
+         * 2-line perspective calibration & rectification.
+         */
+        function generatePerspectiveSampleRender() {
+          const w = 1280;
+          const h = 900;
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          const g = c.getContext('2d');
+          g.clearRect(0, 0, w, h);
+
+          // Perspective wall quad converging toward right vanishing point (vx=1680, vy=390)
+          const vx = 1680;
+          const vy = 390;
+          function wallPt(x, yAtLeftEdge) {
+            const t = (x - 120) / (vx - 120);
+            return yAtLeftEdge + (vy - yAtLeftEdge) * t;
+          }
+
+          // Slanted architectural exhibition wall
+          g.fillStyle = '#ECEAE4';
+          g.strokeStyle = '#1C1C1E';
+          g.lineWidth = 3;
+          g.beginPath();
+          g.moveTo(120, wallPt(120, 110));
+          g.lineTo(1160, wallPt(1160, 110));
+          g.lineTo(1160, wallPt(1160, 810));
+          g.lineTo(120, wallPt(120, 810));
+          g.closePath();
+          g.fill();
+          g.stroke();
+
+          // Perspective media artwork panel on the wall
+          const pGrad = g.createLinearGradient(260, 200, 960, 560);
+          pGrad.addColorStop(0, '#18181B');
+          pGrad.addColorStop(1, '#323238');
+          g.fillStyle = pGrad;
+          g.beginPath();
+          g.moveTo(280, wallPt(280, 210));
+          g.lineTo(940, wallPt(940, 210));
+          g.lineTo(940, wallPt(940, 620));
+          g.lineTo(280, wallPt(280, 620));
+          g.closePath();
+          g.fill();
+
+          // Subtle architectural grid inside artwork
+          g.strokeStyle = 'rgba(255,255,255,0.22)';
+          g.lineWidth = 2;
+          for (let x = 360; x <= 880; x += 130) {
+            g.beginPath();
+            g.moveTo(x, wallPt(x, 210));
+            g.lineTo(x, wallPt(x, 620));
+            g.stroke();
+          }
+
+          // Near Light Pillar (Left, x=220, 2.00m physical height)
+          const x1 = 220;
+          const y1Top = wallPt(x1, 210);
+          const y1Bot = wallPt(x1, 790);
+          g.fillStyle = '#18181B';
+          g.fillRect(x1 - 12, y1Top, 24, y1Bot - y1Top);
+          g.fillStyle = '#FFF5D6';
+          g.fillRect(x1 - 5, y1Top + 12, 10, y1Bot - y1Top - 24);
+          g.fillStyle = '#E53935';
+          g.fillRect(x1 - 22, y1Top, 44, 6);
+          g.fillRect(x1 - 22, y1Bot - 6, 44, 6);
+
+          // Far Light Pillar (Right, x=1040, SAME 2.00m physical height!)
+          const x2 = 1040;
+          const y2Top = wallPt(x2, 210);
+          const y2Bot = wallPt(x2, 790);
+          g.fillStyle = '#18181B';
+          g.fillRect(x2 - 8, y2Top, 16, y2Bot - y2Top);
+          g.fillStyle = '#FFF5D6';
+          g.fillRect(x2 - 3, y2Top + 8, 6, y2Bot - y2Top - 16);
+          g.fillStyle = '#0284C7';
+          g.fillRect(x2 - 16, y2Top, 32, 5);
+          g.fillRect(x2 - 16, y2Bot - 5, 32, 5);
+
+          g.fillStyle = '#111111';
+          g.font = '600 20px sans-serif';
+          g.fillText('近处灯柱 2.00m (A–B)', 130, 848);
+          g.fillStyle = '#0284C7';
+          g.fillText('远处同高灯柱 2.00m (C–D)', 880, 620);
+
+          loadImageFromDataUrl(c.toDataURL('image/png'), 'image/png');
         }
 
         // =====================================================================
-        // 3. Canvas Sizing, Coordinate Transforms & Vector Rendering
+        // 6. Main Calibration Canvas & Perspective Rectification
         // =====================================================================
-
-        function resizeCanvas() {
-          const rect = workspaceArea.getBoundingClientRect();
-          const pad = window.innerWidth >= 900 ? 48 : 24;
-          const cssW = Math.max(100, Math.floor(rect.width - pad));
-          const cssH = Math.max(100, Math.floor(rect.height - pad));
+        function resizeCanvasAndDraw() {
+          const rect = canvasStage.getBoundingClientRect();
           const dpr = Math.min(window.devicePixelRatio || 1, 3);
+          const cssW = Math.max(1, Math.floor(rect.width));
+          const cssH = Math.max(1, Math.floor(rect.height));
 
-          canvas.style.width = cssW + 'px';
-          canvas.style.height = cssH + 'px';
           canvas.width = Math.floor(cssW * dpr);
           canvas.height = Math.floor(cssH * dpr);
-
+          canvas.style.width = cssW + 'px';
+          canvas.style.height = cssH + 'px';
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
           if (state.image) {
-            const imgW = state.intrinsicWidth;
-            const imgH = state.intrinsicHeight;
-            const scale = Math.min(cssW / imgW, cssH / imgH);
-            const drawW = imgW * scale;
-            const drawH = imgH * scale;
-            const drawX = (cssW - drawW) / 2;
-            const drawY = (cssH - drawH) / 2;
-            state.drawRect = { x: drawX, y: drawY, w: drawW, h: drawH, scale };
-          }
+            const pad = cssW < 500 ? 14 : 26;
+            const availW = Math.max(40, cssW - pad * 2);
+            const availH = Math.max(40, cssH - pad * 2);
+            const imgRatio = state.naturalWidth / state.naturalHeight;
+            const stageRatio = availW / availH;
 
-          renderCanvas();
-        }
-
-        function canvasCssToIntrinsic(cssX, cssY) {
-          const r = state.drawRect;
-          const clampedX = Math.max(r.x, Math.min(r.x + r.w, cssX));
-          const clampedY = Math.max(r.y, Math.min(r.y + r.h, cssY));
-          return {
-            x: ((clampedX - r.x) / r.w) * state.intrinsicWidth,
-            y: ((clampedY - r.y) / r.h) * state.intrinsicHeight,
-          };
-        }
-
-        function intrinsicToCanvasCss(ix, iy) {
-          const r = state.drawRect;
-          return {
-            x: r.x + (ix / state.intrinsicWidth) * r.w,
-            y: r.y + (iy / state.intrinsicHeight) * r.h,
-          };
-        }
-
-        function drawCheckerboard(x, y, w, h) {
-          const size = 10;
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(x, y, w, h);
-          ctx.clip();
-
-          ctx.fillStyle = '#F7F7F7';
-          ctx.fillRect(x, y, w, h);
-          ctx.fillStyle = '#E4E4E4';
-
-          const cols = Math.ceil(w / size);
-          const rows = Math.ceil(h / size);
-          for (let row = 0; row < rows; row++) {
-            for (let col = row % 2; col < cols; col += 2) {
-              ctx.fillRect(x + col * size, y + row * size, size, size);
+            let drawW, drawH;
+            if (imgRatio > stageRatio) {
+              drawW = availW;
+              drawH = availW / imgRatio;
+            } else {
+              drawH = availH;
+              drawW = availH * imgRatio;
             }
+
+            state.viewportRect = {
+              x: (cssW - drawW) / 2,
+              y: (cssH - drawH) / 2,
+              w: drawW,
+              h: drawH,
+              scale: drawW / state.naturalWidth,
+            };
           }
-          ctx.restore();
+          drawMainCanvas();
         }
 
-        function drawRoundedRect(context, x, y, w, h, r) {
-          if (typeof context.roundRect === 'function') {
-            context.beginPath();
-            context.roundRect(x, y, w, h, r);
-            return;
-          }
-          context.beginPath();
-          context.moveTo(x + r, y);
-          context.arcTo(x + w, y, x + w, y + h, r);
-          context.arcTo(x + w, y + h, x, y + h, r);
-          context.arcTo(x, y + h, x, y, r);
-          context.arcTo(x, y, x + w, y, r);
-          context.closePath();
+        function imageToCanvas(pt) {
+          const vr = state.viewportRect;
+          return { x: vr.x + pt.x * vr.scale, y: vr.y + pt.y * vr.scale };
         }
 
-        function renderCanvas() {
-          const cssW = parseFloat(canvas.style.width) || 0;
-          const cssH = parseFloat(canvas.style.height) || 0;
-          ctx.clearRect(0, 0, cssW, cssH);
+        function canvasToImage(cx, cy, clampToBounds) {
+          const vr = state.viewportRect;
+          let ix = (cx - vr.x) / vr.scale;
+          let iy = (cy - vr.y) / vr.scale;
+          if (clampToBounds) {
+            ix = Math.max(0, Math.min(state.naturalWidth, ix));
+            iy = Math.max(0, Math.min(state.naturalHeight, iy));
+          }
+          return { x: ix, y: iy };
+        }
 
-          if (!state.image) return;
+        function drawEndpointHandle(targetCtx, x, y, label, color) {
+          targetCtx.fillStyle = '#FFFFFF';
+          targetCtx.beginPath();
+          targetCtx.arc(x, y, 10, 0, Math.PI * 2);
+          targetCtx.fill();
 
-          const { x, y, w, h } = state.drawRect;
+          targetCtx.strokeStyle = color;
+          targetCtx.lineWidth = 2.5;
+          targetCtx.beginPath();
+          targetCtx.arc(x, y, 10, 0, Math.PI * 2);
+          targetCtx.stroke();
 
+          targetCtx.fillStyle = '#111111';
+          targetCtx.font = '700 10px "JetBrains Mono", monospace';
+          targetCtx.textAlign = 'center';
+          targetCtx.textBaseline = 'middle';
+          targetCtx.fillText(label, x, y + 0.5);
+        }
+
+        function drawSegmentWithLabel(
+          pStart,
+          pEnd,
+          label1,
+          label2,
+          color,
+          badgeText
+        ) {
           ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
-          ctx.shadowBlur = 18;
-          ctx.shadowOffsetY = 6;
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(x, y, w, h);
-          ctx.restore();
-
-          if (state.hasAlpha) {
-            drawCheckerboard(x, y, w, h);
-          }
-
-          ctx.drawImage(state.image, x, y, w, h);
-
-          ctx.strokeStyle = 'rgba(17, 17, 17, 0.12)';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(x, y, w, h);
-
-          if (state.pointA && state.pointB) {
-            const pA = intrinsicToCanvasCss(state.pointA.x, state.pointA.y);
-            const pB = intrinsicToCanvasCss(state.pointB.x, state.pointB.y);
-
-            ctx.save();
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-            ctx.lineWidth = 4.5;
-            ctx.beginPath();
-            ctx.moveTo(pA.x, pA.y);
-            ctx.lineTo(pB.x, pB.y);
-            ctx.stroke();
-
-            ctx.strokeStyle = '#E53935';
-            ctx.lineWidth = 2.25;
-            ctx.beginPath();
-            ctx.moveTo(pA.x, pA.y);
-            ctx.lineTo(pB.x, pB.y);
-            ctx.stroke();
-            ctx.restore();
-
-            drawEndpoint(pA.x, pA.y, 'A');
-            drawEndpoint(pB.x, pB.y, 'B');
-
-            const pxLen = getPixelLineLength();
-            if (pxLen >= 4) {
-              const midX = (pA.x + pB.x) / 2;
-              const midY = (pA.y + pB.y) / 2;
-              const meters = parseFloat(realLengthInput.value);
-              const labelText =
-                Number.isFinite(meters) && meters > 0
-                  ? `${meters.toFixed(2)} m · ${Math.round(pxLen)} px`
-                  : `${Math.round(pxLen)} px`;
-              drawMidpointLabel(midX, midY, labelText);
-            }
-          }
-        }
-
-        function drawEndpoint(x, y, label) {
-          ctx.save();
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+          ctx.lineWidth = 5;
           ctx.beginPath();
-          ctx.arc(x, y, 10, 0, Math.PI * 2);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fill();
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = '#E53935';
+          ctx.moveTo(pStart.x, pStart.y);
+          ctx.lineTo(pEnd.x, pEnd.y);
           ctx.stroke();
 
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.arc(x, y, 3.2, 0, Math.PI * 2);
-          ctx.fillStyle = '#E53935';
-          ctx.fill();
+          ctx.moveTo(pStart.x, pStart.y);
+          ctx.lineTo(pEnd.x, pEnd.y);
+          ctx.stroke();
 
-          ctx.font = '600 11px "JetBrains Mono", monospace';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          const badgeY = y - 18 < 14 ? y + 18 : y - 18;
-          ctx.fillStyle = '#111111';
-          ctx.fillRect(x - 9, badgeY - 8, 18, 16);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillText(label, x, badgeY + 0.5);
+          drawEndpointHandle(ctx, pStart.x, pStart.y, label1, color);
+          drawEndpointHandle(ctx, pEnd.x, pEnd.y, label2, color);
+
+          const distCss = Math.hypot(pEnd.x - pStart.x, pEnd.y - pStart.y);
+          if (distCss >= 24 && badgeText) {
+            const midX = (pStart.x + pEnd.x) / 2;
+            const midY = (pStart.y + pEnd.y) / 2;
+            ctx.font = '600 11px "JetBrains Mono", monospace';
+            const textW = ctx.measureText(badgeText).width;
+            const pillW = textW + 14;
+            const pillH = 22;
+
+            ctx.fillStyle = 'rgba(17, 17, 17, 0.86)';
+            drawRoundedRectPath(
+              ctx,
+              midX - pillW / 2,
+              midY - pillH / 2,
+              pillW,
+              pillH,
+              6
+            );
+            ctx.fill();
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(badgeText, midX, midY + 0.5);
+          }
           ctx.restore();
         }
 
-        function drawMidpointLabel(x, y, text) {
-          ctx.save();
-          ctx.font = '600 11px "JetBrains Mono", monospace';
-          const metrics = ctx.measureText(text);
-          const padX = 8;
-          const boxW = metrics.width + padX * 2;
-          const boxH = 22;
-
-          ctx.fillStyle = 'rgba(17, 17, 17, 0.88)';
-          drawRoundedRect(ctx, x - boxW / 2, y - boxH / 2, boxW, boxH, 6);
-          ctx.fill();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(text, x, y + 0.5);
-          ctx.restore();
-        }
-
-        // =====================================================================
-        // 4. Touch / Pointer Calibration + -60px Y-Offset 2x Magnifier Loupe
-        // =====================================================================
-
-        function getCanvasPointerPos(event) {
-          const rect = canvas.getBoundingClientRect();
-          return {
-            cssX: event.clientX - rect.left,
-            cssY: event.clientY - rect.top,
-            clientX: event.clientX,
-            clientY: event.clientY,
-          };
-        }
-
-        function hitTestEndpoint(cssX, cssY) {
-          if (!state.pointA || !state.pointB) return null;
-          const hitRadius = 28;
-          const pA = intrinsicToCanvasCss(state.pointA.x, state.pointA.y);
-          const pB = intrinsicToCanvasCss(state.pointB.x, state.pointB.y);
-          const distA = Math.hypot(cssX - pA.x, cssY - pA.y);
-          const distB = Math.hypot(cssX - pB.x, cssY - pB.y);
-          if (distA <= hitRadius && distA <= distB) return 'moveA';
-          if (distB <= hitRadius) return 'moveB';
-          return null;
-        }
-
-        function updateMagnifier(clientX, clientY, intrinsicPt) {
+        function drawMainCanvas() {
+          const rect = canvasStage.getBoundingClientRect();
+          ctx.clearRect(0, 0, rect.width, rect.height);
           if (!state.image) return;
 
-          const loupeX = Math.max(56, Math.min(window.innerWidth - 56, clientX));
-          const loupeY = Math.max(56, clientY - 60);
+          const vr = state.viewportRect;
+          drawCheckerboard(ctx, vr.x, vr.y, vr.w, vr.h, 10);
+          ctx.drawImage(state.image, vr.x, vr.y, vr.w, vr.h);
 
-          magnifierLoupe.style.left = loupeX + 'px';
-          magnifierLoupe.style.top = loupeY + 'px';
-          magnifierLoupe.classList.add('is-active');
+          ctx.strokeStyle = 'rgba(17, 17, 17, 0.14)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(vr.x, vr.y, vr.w, vr.h);
 
-          const mW = magnifierCanvas.width;
-          const mH = magnifierCanvas.height;
-          magnifierCtx.clearRect(0, 0, mW, mH);
+          // If both A-B and C-D exist, draw subtle perspective convergence guides & horizon
+          if (state.line.a && state.line.b && state.perspLine.c && state.perspLine.d) {
+            const pair1 =
+              state.line.a.y <= state.line.b.y
+                ? [state.line.a, state.line.b]
+                : [state.line.b, state.line.a];
+            const pair2 =
+              state.perspLine.c.y <= state.perspLine.d.y
+                ? [state.perspLine.c, state.perspLine.d]
+                : [state.perspLine.d, state.perspLine.c];
 
-          magnifierCtx.fillStyle = '#F2F2F2';
-          magnifierCtx.fillRect(0, 0, mW, mH);
+            const t1 = imageToCanvas(pair1[0]);
+            const b1 = imageToCanvas(pair1[1]);
+            const t2 = imageToCanvas(pair2[0]);
+            const b2 = imageToCanvas(pair2[1]);
 
-          const loupeCssSize = 104;
-          const zoomFactor = 2.0;
-          const intrinsicSpan =
-            loupeCssSize / (state.drawRect.scale * zoomFactor);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(2, 132, 199, 0.55)';
+            ctx.lineWidth = 1.3;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(t1.x, t1.y);
+            ctx.lineTo(t2.x, t2.y);
+            ctx.moveTo(b1.x, b1.y);
+            ctx.lineTo(b2.x, b2.y);
+            ctx.stroke();
 
-          const srcX = intrinsicPt.x - intrinsicSpan / 2;
-          const srcY = intrinsicPt.y - intrinsicSpan / 2;
-          const scaleToLoupe = mW / intrinsicSpan;
-
-          magnifierCtx.save();
-          magnifierCtx.drawImage(
-            state.image,
-            0,
-            0,
-            state.intrinsicWidth,
-            state.intrinsicHeight,
-            -srcX * scaleToLoupe,
-            -srcY * scaleToLoupe,
-            state.intrinsicWidth * scaleToLoupe,
-            state.intrinsicHeight * scaleToLoupe
-          );
-
-          if (state.pointA && state.pointB) {
-            const ax = (state.pointA.x - srcX) * scaleToLoupe;
-            const ay = (state.pointA.y - srcY) * scaleToLoupe;
-            const bx = (state.pointB.x - srcX) * scaleToLoupe;
-            const by = (state.pointB.y - srcY) * scaleToLoupe;
-
-            magnifierCtx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-            magnifierCtx.lineWidth = 5;
-            magnifierCtx.beginPath();
-            magnifierCtx.moveTo(ax, ay);
-            magnifierCtx.lineTo(bx, by);
-            magnifierCtx.stroke();
-
-            magnifierCtx.strokeStyle = '#E53935';
-            magnifierCtx.lineWidth = 2.5;
-            magnifierCtx.beginPath();
-            magnifierCtx.moveTo(ax, ay);
-            magnifierCtx.lineTo(bx, by);
-            magnifierCtx.stroke();
+            const vpImg = lineIntersection2D(
+              pair1[0],
+              pair2[0],
+              pair1[1],
+              pair2[1]
+            );
+            if (vpImg) {
+              const vpCss = imageToCanvas(vpImg);
+              if (vpCss.y > -200 && vpCss.y < rect.height + 200) {
+                ctx.strokeStyle = 'rgba(229, 57, 53, 0.35)';
+                ctx.beginPath();
+                ctx.moveTo(vr.x, vpCss.y);
+                ctx.lineTo(vr.x + vr.w, vpCss.y);
+                ctx.stroke();
+              }
+            }
+            ctx.restore();
           }
 
-          const cx = mW / 2;
-          const cy = mH / 2;
-          magnifierCtx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-          magnifierCtx.lineWidth = 3;
-          magnifierCtx.beginPath();
-          magnifierCtx.moveTo(cx - 18, cy);
-          magnifierCtx.lineTo(cx + 18, cy);
-          magnifierCtx.moveTo(cx, cy - 18);
-          magnifierCtx.lineTo(cx, cy + 18);
-          magnifierCtx.stroke();
+          if (state.line.a && state.line.b) {
+            const pA = imageToCanvas(state.line.a);
+            const pB = imageToCanvas(state.line.b);
+            const txt1 =
+              state.realLengthMeters > 0
+                ? state.realLengthMeters.toFixed(2) + ' m'
+                : Math.round(state.linePx) + ' px';
+            drawSegmentWithLabel(pA, pB, 'A', 'B', ACCENT_RED, txt1);
+          }
 
-          magnifierCtx.strokeStyle = '#E53935';
-          magnifierCtx.lineWidth = 1.6;
-          magnifierCtx.beginPath();
-          magnifierCtx.moveTo(cx - 18, cy);
-          magnifierCtx.lineTo(cx + 18, cy);
-          magnifierCtx.moveTo(cx, cy - 18);
-          magnifierCtx.lineTo(cx, cy + 18);
-          magnifierCtx.stroke();
-
-          magnifierCtx.restore();
+          if (state.perspLine.c && state.perspLine.d) {
+            const pC = imageToCanvas(state.perspLine.c);
+            const pD = imageToCanvas(state.perspLine.d);
+            const txt2 =
+              state.realLengthMeters > 0
+                ? state.realLengthMeters.toFixed(2) + ' m (等高)'
+                : '';
+            drawSegmentWithLabel(pC, pD, 'C', 'D', ACCENT_BLUE, txt2);
+          }
         }
 
-        function hideMagnifier() {
-          magnifierLoupe.classList.remove('is-active');
+        function updateMainMagnifier(clientX, clientY, imgPt) {
+          if (!state.image) return;
+          showMagnifierAt(clientX, clientY, function (mCtx, magW, magH) {
+            drawCheckerboard(mCtx, 0, 0, magW, magH, 16);
+
+            const canvasBackingScale = magW / LOUPE_SIZE_CSS;
+            const targetImgPxPerCanvasPx =
+              1 / (state.viewportRect.scale * LOUPE_ZOOM * canvasBackingScale);
+
+            const srcHalfW = (magW / 2) * targetImgPxPerCanvasPx;
+            const srcHalfH = (magH / 2) * targetImgPxPerCanvasPx;
+            const sx = imgPt.x - srcHalfW;
+            const sy = imgPt.y - srcHalfH;
+            const sw = srcHalfW * 2;
+            const sh = srcHalfH * 2;
+
+            const dstX = sx < 0 ? (-sx / sw) * magW : 0;
+            const dstY = sy < 0 ? (-sy / sh) * magH : 0;
+            const clippedSx = Math.max(0, sx);
+            const clippedSy = Math.max(0, sy);
+            const clippedMaxX = Math.min(state.naturalWidth, sx + sw);
+            const clippedMaxY = Math.min(state.naturalHeight, sy + sh);
+            const clippedSw = Math.max(0, clippedMaxX - clippedSx);
+            const clippedSh = Math.max(0, clippedMaxY - clippedSy);
+
+            if (clippedSw > 0 && clippedSh > 0) {
+              mCtx.drawImage(
+                state.image,
+                clippedSx,
+                clippedSy,
+                clippedSw,
+                clippedSh,
+                dstX,
+                dstY,
+                (clippedSw / sw) * magW,
+                (clippedSh / sh) * magH
+              );
+            }
+
+            const drawMagLine = (p1, p2, col) => {
+              if (!p1 || !p2) return;
+              const x1 = ((p1.x - sx) / sw) * magW;
+              const y1 = ((p1.y - sy) / sh) * magH;
+              const x2 = ((p2.x - sx) / sw) * magW;
+              const y2 = ((p2.y - sy) / sh) * magH;
+              mCtx.save();
+              mCtx.strokeStyle = 'rgba(255,255,255,0.85)';
+              mCtx.lineWidth = 4;
+              mCtx.beginPath();
+              mCtx.moveTo(x1, y1);
+              mCtx.lineTo(x2, y2);
+              mCtx.stroke();
+              mCtx.strokeStyle = col;
+              mCtx.lineWidth = 2;
+              mCtx.beginPath();
+              mCtx.moveTo(x1, y1);
+              mCtx.lineTo(x2, y2);
+              mCtx.stroke();
+              mCtx.restore();
+            };
+
+            drawMagLine(state.line.a, state.line.b, ACCENT_RED);
+            drawMagLine(state.perspLine.c, state.perspLine.d, ACCENT_BLUE);
+          });
+        }
+
+        function getCanvasLocalCoords(e) {
+          const rect = canvas.getBoundingClientRect();
+          return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         }
 
         canvas.addEventListener('pointerdown', function (e) {
           if (!state.image) return;
           e.preventDefault();
-
-          const pos = getCanvasPointerPos(e);
-          const hit = hitTestEndpoint(pos.cssX, pos.cssY);
-          const pt = canvasCssToIntrinsic(pos.cssX, pos.cssY);
-
-          state.activePointerId = e.pointerId;
           canvas.setPointerCapture(e.pointerId);
+          state.activePointerId = e.pointerId;
 
-          if (hit === 'moveA') {
-            state.dragMode = 'moveA';
-            state.pointA = pt;
-          } else if (hit === 'moveB') {
-            state.dragMode = 'moveB';
-            state.pointB = pt;
-          } else {
-            state.dragMode = 'new';
-            state.pointA = pt;
-            state.pointB = { x: pt.x, y: pt.y };
+          const local = getCanvasLocalCoords(e);
+
+          // Check hit on any existing endpoint (A, B, C, D)
+          const handles = [];
+          if (state.line.a && state.line.b) {
+            handles.push({ mode: 'moveA', pt: imageToCanvas(state.line.a) });
+            handles.push({ mode: 'moveB', pt: imageToCanvas(state.line.b) });
+          }
+          if (state.perspLine.c && state.perspLine.d) {
+            handles.push({ mode: 'moveC', pt: imageToCanvas(state.perspLine.c) });
+            handles.push({ mode: 'moveD', pt: imageToCanvas(state.perspLine.d) });
           }
 
-          renderCanvas();
-          updateMagnifier(pos.clientX, pos.clientY, pt);
-          updateMetricsAndUI('none');
+          let bestHandle = null;
+          let bestDist = ENDPOINT_HIT_RADIUS_CSS;
+          handles.forEach((h) => {
+            const d = Math.hypot(local.x - h.pt.x, local.y - h.pt.y);
+            if (d < bestDist) {
+              bestDist = d;
+              bestHandle = h.mode;
+            }
+          });
+
+          const imgPt = canvasToImage(local.x, local.y, true);
+
+          if (bestHandle) {
+            state.dragMode = bestHandle;
+            if (bestHandle === 'moveA') state.line.a = imgPt;
+            if (bestHandle === 'moveB') state.line.b = imgPt;
+            if (bestHandle === 'moveC') state.perspLine.c = imgPt;
+            if (bestHandle === 'moveD') state.perspLine.d = imgPt;
+            updateMainMagnifier(e.clientX, e.clientY, imgPt);
+            drawMainCanvas();
+            recalculateScaleAndModel(false);
+            return;
+          }
+
+          // Start drawing either C-D (if persp mode selected) or A-B
+          if (state.activeDrawTarget === 'persp') {
+            state.dragMode = 'newCD';
+            state.perspLine.c = { ...imgPt };
+            state.perspLine.d = { ...imgPt };
+          } else {
+            state.dragMode = 'newAB';
+            state.line.a = { ...imgPt };
+            state.line.b = { ...imgPt };
+          }
+
+          canvasInstruction.classList.add('is-hidden');
+          updateMainMagnifier(e.clientX, e.clientY, imgPt);
+          drawMainCanvas();
+          recalculateScaleAndModel(false);
         });
 
         canvas.addEventListener('pointermove', function (e) {
           if (!state.dragMode || e.pointerId !== state.activePointerId) return;
           e.preventDefault();
+          const local = getCanvasLocalCoords(e);
+          const imgPt = canvasToImage(local.x, local.y, true);
 
-          const pos = getCanvasPointerPos(e);
-          const pt = canvasCssToIntrinsic(pos.cssX, pos.cssY);
+          if (state.dragMode === 'moveA') state.line.a = imgPt;
+          else if (state.dragMode === 'moveB' || state.dragMode === 'newAB')
+            state.line.b = imgPt;
+          else if (state.dragMode === 'moveC') state.perspLine.c = imgPt;
+          else if (state.dragMode === 'moveD' || state.dragMode === 'newCD')
+            state.perspLine.d = imgPt;
 
-          if (state.dragMode === 'moveA') {
-            state.pointA = pt;
-          } else {
-            state.pointB = pt;
-          }
-
-          renderCanvas();
-          updateMagnifier(pos.clientX, pos.clientY, pt);
-          updateMetricsAndUI('none');
+          updateMainMagnifier(e.clientX, e.clientY, imgPt);
+          drawMainCanvas();
+          recalculateScaleAndModel(false);
         });
 
         function finishPointerDrag(e) {
           if (!state.dragMode || e.pointerId !== state.activePointerId) return;
-
           if (canvas.hasPointerCapture(e.pointerId)) {
             canvas.releasePointerCapture(e.pointerId);
           }
-
+          const wasCD =
+            state.dragMode === 'newCD' ||
+            state.dragMode === 'moveC' ||
+            state.dragMode === 'moveD';
           state.dragMode = null;
           state.activePointerId = null;
           hideMagnifier();
 
-          if (getPixelLineLength() < 6) {
-            state.pointA = null;
-            state.pointB = null;
+          if (state.line.a && state.line.b) {
+            const pA = imageToCanvas(state.line.a);
+            const pB = imageToCanvas(state.line.b);
+            if (Math.hypot(pB.x - pA.x, pB.y - pA.y) < 4) {
+              state.line.a = null;
+              state.line.b = null;
+              canvasInstruction.classList.remove('is-hidden');
+            }
           }
 
-          renderCanvas();
-          updateMetricsAndUI('immediate');
+          if (state.perspLine.c && state.perspLine.d) {
+            const pC = imageToCanvas(state.perspLine.c);
+            const pD = imageToCanvas(state.perspLine.d);
+            if (Math.hypot(pD.x - pC.x, pD.y - pC.y) < 4) {
+              state.perspLine.c = null;
+              state.perspLine.d = null;
+            } else if (wasCD) {
+              // Exit C-D creation mode back to normal once C-D is drawn
+              state.activeDrawTarget = 'primary';
+              togglePerspLineBtn.classList.remove('is-blue-active');
+              togglePerspLineBtn.textContent = '重标 C–D';
+            }
+          }
+
+          drawMainCanvas();
+          recalculateScaleAndModel(true);
         }
 
         canvas.addEventListener('pointerup', finishPointerDrag);
         canvas.addEventListener('pointercancel', finishPointerDrag);
 
         // =====================================================================
-        // 5. Calibration Math & Dynamic In-Memory glTF 2.0 Data URI Generator
+        // 7. 2-Line Equal-Height Perspective Analysis & Rectification
         // =====================================================================
-
-        function getPixelLineLength() {
-          if (!state.pointA || !state.pointB) return 0;
-          return Math.hypot(
-            state.pointB.x - state.pointA.x,
-            state.pointB.y - state.pointA.y
-          );
-        }
-
-        function getPhysicalDimensions() {
-          const lPx = getPixelLineLength();
-          const realLen = parseFloat(realLengthInput.value);
+        function computePerspectiveRectification() {
           if (
             !state.image ||
-            lPx < 6 ||
-            !Number.isFinite(realLen) ||
-            realLen <= 0
+            !state.line.a ||
+            !state.line.b ||
+            !state.perspLine.c ||
+            !state.perspLine.d ||
+            state.realLengthMeters <= 0
           ) {
             return null;
           }
-          const scale = realLen / lPx;
-          const realWidth = state.intrinsicWidth * scale;
-          const realHeight = state.intrinsicHeight * scale;
+
+          const W = state.naturalWidth;
+          const H = state.naturalHeight;
+          const realH = state.realLengthMeters;
+
+          // Sort top/bottom of each segment
+          const p1Top =
+            state.line.a.y <= state.line.b.y ? state.line.a : state.line.b;
+          const p1Bot =
+            state.line.a.y <= state.line.b.y ? state.line.b : state.line.a;
+          const p2Top =
+            state.perspLine.c.y <= state.perspLine.d.y
+              ? state.perspLine.c
+              : state.perspLine.d;
+          const p2Bot =
+            state.perspLine.c.y <= state.perspLine.d.y
+              ? state.perspLine.d
+              : state.perspLine.c;
+
+          // Order left-to-right
+          const x1 = (p1Top.x + p1Bot.x) / 2;
+          const x2 = (p2Top.x + p2Bot.x) / 2;
+          if (Math.abs(x2 - x1) < 12) return null;
+
+          const leftTop = x1 <= x2 ? p1Top : p2Top;
+          const leftBot = x1 <= x2 ? p1Bot : p2Bot;
+          const rightTop = x1 <= x2 ? p2Top : p1Top;
+          const rightBot = x1 <= x2 ? p2Bot : p1Bot;
+
+          const hL = Math.hypot(leftBot.x - leftTop.x, leftBot.y - leftTop.y);
+          const hR = Math.hypot(rightBot.x - rightTop.x, rightBot.y - rightTop.y);
+          if (hL < 8 || hR < 8) return null;
+
+          const xL = (leftTop.x + leftBot.x) / 2;
+          const xR = (rightTop.x + rightBot.x) / 2;
+
+          // 3D depth estimation using typical ~35mm focal length
+          const fImg = 1.05 * Math.max(W, H);
+          const cx = W / 2;
+          const zL = (fImg * realH) / hL;
+          const zR = (fImg * realH) / hR;
+          const x3L = ((xL - cx) / fImg) * zL;
+          const x3R = ((xR - cx) / fImg) * zR;
+
+          const spanMeters = Math.hypot(x3R - x3L, zR - zL);
+          const yawDeg = (Math.atan2(zR - zL, x3R - x3L) * 180) / Math.PI;
+          const depthRatio = Math.max(hL, hR) / Math.min(hL, hR);
+
+          if (!state.rectifyPerspective || depthRatio < 1.03) {
+            // Average metric scale when rectification disabled or near-orthographic
+            const avgH = (hL + hR) / 2;
+            const scale = realH / avgH;
+            return {
+              yawDeg,
+              depthRatio,
+              rectified: false,
+              realWidth: W * scale,
+              realHeight: H * scale,
+              textureDataUrl: state.rawTextureDataUrl,
+              textureSource: state.image,
+              hasAlpha: state.hasAlpha,
+            };
+          }
+
+          // Compute projective homography mapping source quad -> real meters
+          const srcQuad = [
+            [leftTop.x, leftTop.y],
+            [rightTop.x, rightTop.y],
+            [rightBot.x, rightBot.y],
+            [leftBot.x, leftBot.y],
+          ];
+          const metricQuad = [
+            [0, 0],
+            [spanMeters, 0],
+            [spanMeters, realH],
+            [0, realH],
+          ];
+
+          const H_src2m = solveHomography2D(srcQuad, metricQuad);
+          const H_m2src = solveHomography2D(metricQuad, srcQuad);
+          if (!H_src2m || !H_m2src) return null;
+
+          // Determine safe metric bounding box of the original image corners
+          let minXm = 0;
+          let maxXm = spanMeters;
+          let minYm = 0;
+          let maxYm = realH;
+
+          const imgCorners = [
+            [0, 0],
+            [W, 0],
+            [W, H],
+            [0, H],
+          ];
+          imgCorners.forEach((pt) => {
+            const mapped = applyHomography(H_src2m, pt[0], pt[1]);
+            if (mapped && mapped.denom > 0.22) {
+              minXm = Math.min(minXm, mapped.x);
+              maxXm = Math.max(maxXm, mapped.x);
+              minYm = Math.min(minYm, mapped.y);
+              maxYm = Math.max(maxYm, mapped.y);
+            }
+          });
+
+          // Clamp maximum expansion so near-horizon corners never blow up texture size
+          minXm = Math.max(-spanMeters * 1.5, minXm);
+          maxXm = Math.min(spanMeters * 2.5, maxXm);
+          minYm = Math.max(-realH * 1.2, minYm);
+          maxYm = Math.min(realH * 2.0, maxYm);
+
+          const rectRealWidth = Math.max(0.2, maxXm - minXm);
+          const rectRealHeight = Math.max(0.2, maxYm - minYm);
+
+          // Render rectified texture at up to 960px max side
+          const maxOutDim = 960;
+          let outW, outH;
+          if (rectRealWidth >= rectRealHeight) {
+            outW = maxOutDim;
+            outH = Math.max(
+              64,
+              Math.round((maxOutDim * rectRealHeight) / rectRealWidth)
+            );
+          } else {
+            outH = maxOutDim;
+            outW = Math.max(
+              64,
+              Math.round((maxOutDim * rectRealWidth) / rectRealHeight)
+            );
+          }
+
+          const srcCanvas = document.createElement('canvas');
+          srcCanvas.width = W;
+          srcCanvas.height = H;
+          const sctx = srcCanvas.getContext('2d');
+          sctx.drawImage(state.image, 0, 0, W, H);
+          const srcData = sctx.getImageData(0, 0, W, H).data;
+
+          const outCanvas = document.createElement('canvas');
+          outCanvas.width = outW;
+          outCanvas.height = outH;
+          const octx = outCanvas.getContext('2d');
+          const outImg = octx.createImageData(outW, outH);
+          const dst = outImg.data;
+
+          for (let py = 0; py < outH; py++) {
+            const Ym = minYm + ((py + 0.5) / outH) * rectRealHeight;
+            for (let px = 0; px < outW; px++) {
+              const Xm = minXm + ((px + 0.5) / outW) * rectRealWidth;
+              const sPt = applyHomography(H_m2src, Xm, Ym);
+              if (!sPt || sPt.denom <= 0) continue;
+
+              const sx = sPt.x;
+              const sy = sPt.y;
+              if (sx < 0 || sx >= W - 1 || sy < 0 || sy >= H - 1) continue;
+
+              const x0 = sx | 0;
+              const y0 = sy | 0;
+              const fx = sx - x0;
+              const fy = sy - y0;
+
+              const i00 = (y0 * W + x0) * 4;
+              const i10 = i00 + 4;
+              const i01 = i00 + W * 4;
+              const i11 = i01 + 4;
+
+              const w00 = (1 - fx) * (1 - fy);
+              const w10 = fx * (1 - fy);
+              const w01 = (1 - fx) * fy;
+              const w11 = fx * fy;
+
+              const oIdx = (py * outW + px) * 4;
+              dst[oIdx] =
+                srcData[i00] * w00 +
+                srcData[i10] * w10 +
+                srcData[i01] * w01 +
+                srcData[i11] * w11;
+              dst[oIdx + 1] =
+                srcData[i00 + 1] * w00 +
+                srcData[i10 + 1] * w10 +
+                srcData[i01 + 1] * w01 +
+                srcData[i11 + 1] * w11;
+              dst[oIdx + 2] =
+                srcData[i00 + 2] * w00 +
+                srcData[i10 + 2] * w10 +
+                srcData[i01 + 2] * w01 +
+                srcData[i11 + 2] * w11;
+              dst[oIdx + 3] =
+                srcData[i00 + 3] * w00 +
+                srcData[i10 + 3] * w10 +
+                srcData[i01 + 3] * w01 +
+                srcData[i11 + 3] * w11;
+            }
+          }
+
+          octx.putImageData(outImg, 0, 0);
+
           return {
-            lPx,
-            realLen,
-            scale,
-            realWidth,
-            realHeight,
+            yawDeg,
+            depthRatio,
+            rectified: true,
+            realWidth: rectRealWidth,
+            realHeight: rectRealHeight,
+            textureDataUrl: outCanvas.toDataURL('image/png'),
+            textureSource: outCanvas,
+            hasAlpha: true,
           };
         }
 
+        function recalculateScaleAndModel(shouldBuildGltf = true) {
+          const parsedMeters = parseFloat(realLengthInput.value);
+          state.realLengthMeters =
+            Number.isFinite(parsedMeters) && parsedMeters > 0 ? parsedMeters : 0;
+
+          if (!state.image) {
+            state.linePx = 0;
+            state.metersPerPx = 0;
+            state.realWidthMeters = 0;
+            state.realHeightMeters = 0;
+            clearLineBtn.disabled = true;
+            togglePerspLineBtn.disabled = true;
+            openCameraArBtn.disabled = true;
+            viewInQuickLookBtn.disabled = true;
+            metricsLine.innerHTML = '<span>请先导入 JPG 或透明 PNG 渲染图</span>';
+            return;
+          }
+
+          const hasLine = Boolean(state.line.a && state.line.b);
+          state.linePx = hasLine
+            ? Math.hypot(
+                state.line.b.x - state.line.a.x,
+                state.line.b.y - state.line.a.y
+              )
+            : 0;
+
+          const hasPerspLine = Boolean(
+            state.perspLine.c &&
+              state.perspLine.d &&
+              Math.hypot(
+                state.perspLine.d.x - state.perspLine.c.x,
+                state.perspLine.d.y - state.perspLine.c.y
+              ) >= 8
+          );
+
+          const validCalibration =
+            hasLine && state.linePx >= 2 && state.realLengthMeters > 0;
+
+          clearLineBtn.disabled = !hasLine && !hasPerspLine;
+          togglePerspLineBtn.disabled = !(hasLine && state.linePx >= 2);
+          openCameraArBtn.disabled = !validCalibration;
+          viewInQuickLookBtn.disabled = !validCalibration;
+          rectifyWrap.hidden = !hasPerspLine;
+
+          if (!hasLine || state.linePx < 2) {
+            state.metersPerPx = 0;
+            state.realWidthMeters = 0;
+            state.realHeightMeters = 0;
+            metricsLine.innerHTML =
+              `<span>原图 <strong>${state.naturalWidth}×${state.naturalHeight}</strong> px</span>` +
+              `<span class="metrics-sep">·</span>` +
+              `<span>请在画布上拖动标定线段 A–B</span>`;
+            return;
+          }
+
+          if (state.realLengthMeters <= 0) {
+            metricsLine.innerHTML =
+              `<span>标定线 <strong>${state.linePx.toFixed(1)}</strong> px</span>` +
+              `<span class="metrics-sep">·</span>` +
+              `<span style="color:#E53935">请输入大于 0 的实际米数</span>`;
+            return;
+          }
+
+          // Default 1-line orthographic math
+          state.metersPerPx = state.realLengthMeters / state.linePx;
+          state.realWidthMeters = state.naturalWidth * state.metersPerPx;
+          state.realHeightMeters = state.naturalHeight * state.metersPerPx;
+          state.activeTextureDataUrl = state.rawTextureDataUrl;
+          state.activeTextureSource = state.image;
+          state.activeHasAlpha = state.hasAlpha;
+          state.perspectiveInfo = null;
+
+          // If user finished dragging C-D, run 2-line perspective calibration
+          if (hasPerspLine && shouldBuildGltf) {
+            const pInfo = computePerspectiveRectification();
+            if (pInfo) {
+              state.perspectiveInfo = pInfo;
+              state.realWidthMeters = pInfo.realWidth;
+              state.realHeightMeters = pInfo.realHeight;
+              state.activeTextureDataUrl = pInfo.textureDataUrl;
+              state.activeTextureSource = pInfo.textureSource;
+              state.activeHasAlpha = pInfo.hasAlpha;
+            }
+          }
+
+          if (state.perspectiveInfo) {
+            metricsLine.innerHTML =
+              `<span>透视偏角 <strong>${Math.abs(state.perspectiveInfo.yawDeg).toFixed(1)}°</strong></span>` +
+              `<span class="metrics-sep">·</span>` +
+              `<span>景深比 <strong>${state.perspectiveInfo.depthRatio.toFixed(2)}×</strong></span>` +
+              `<span class="metrics-sep">·</span>` +
+              `<span>${state.perspectiveInfo.rectified ? '展平实景' : '均高实景'} <strong>${state.realWidthMeters.toFixed(2)} × ${state.realHeightMeters.toFixed(2)}</strong> m</span>`;
+          } else {
+            metricsLine.innerHTML =
+              `<span>标定线 <strong>${state.linePx.toFixed(1)}</strong> px</span>` +
+              `<span class="metrics-sep">·</span>` +
+              `<span>比例 <strong>${(state.metersPerPx * 1000).toFixed(2)}</strong> mm/px</span>` +
+              `<span class="metrics-sep">·</span>` +
+              `<span>展板实景 <strong>${state.realWidthMeters.toFixed(2)} × ${state.realHeightMeters.toFixed(2)}</strong> m</span>`;
+          }
+
+          if (shouldBuildGltf) {
+            updateModelViewerBillboard();
+          }
+        }
+
+        // =====================================================================
+        // 8. glTF 2.0 Data URI Builder (with Floor Ruler + 1.70m Reference)
+        // =====================================================================
         function arrayBufferToBase64(buffer) {
           const bytes = new Uint8Array(buffer);
           let binary = '';
@@ -1689,76 +2755,215 @@
         }
 
         function utf8ToBase64(str) {
-          const bytes = new TextEncoder().encode(str);
-          return arrayBufferToBase64(bytes.buffer);
+          return arrayBufferToBase64(new TextEncoder().encode(str).buffer);
         }
 
-        /**
-         * Builds a minimal glTF 2.0 JSON Data URI in memory containing a single
-         * upright 3D Plane resting at Y = 0 (floor-anchored), exact width = Real_Width,
-         * height = Real_Height, mapped with the uploaded image as baseColorTexture.
-         */
-        function buildBillboardGltfDataUri(realWidth, realHeight) {
-          const hw = realWidth / 2;
-          const h = realHeight;
+        function generateRulerMatTexture(widthM, heightM) {
+          const c = document.createElement('canvas');
+          c.width = 1024;
+          c.height = 256;
+          const g = c.getContext('2d');
+          g.clearRect(0, 0, c.width, c.height);
 
-          const buffer = new ArrayBuffer(140);
+          g.fillStyle = 'rgba(17, 17, 17, 0.65)';
+          drawRoundedRectPath(g, 8, 12, 1008, 232, 20);
+          g.fill();
+
+          g.fillStyle = '#E53935';
+          g.fillRect(28, 34, 968, 10);
+          g.fillRect(28, 22, 8, 34);
+          g.fillRect(988, 22, 8, 34);
+
+          const stepMeters = widthM > 4 ? 1.0 : 0.5;
+          const steps = Math.floor(widthM / stepMeters);
+          g.fillStyle = 'rgba(255,255,255,0.75)';
+          for (let i = 1; i <= steps; i++) {
+            const frac = (i * stepMeters) / widthM;
+            if (frac < 0.96) g.fillRect(28 + frac * 968, 24, 4, 28);
+          }
+
+          g.fillStyle = '#FFFFFF';
+          g.font = '700 58px monospace';
+          g.textAlign = 'center';
+          g.textBaseline = 'middle';
+          g.fillText(
+            `1:1  ${widthM.toFixed(2)}m × ${heightM.toFixed(2)}m`,
+            512,
+            152
+          );
+          return c.toDataURL('image/png');
+        }
+
+        let cachedSilhouetteUrl = '';
+        function getHumanSilhouetteTextureUrl() {
+          if (cachedSilhouetteUrl) return cachedSilhouetteUrl;
+          const c = document.createElement('canvas');
+          c.width = 256;
+          c.height = 768;
+          const g = c.getContext('2d');
+          g.clearRect(0, 0, c.width, c.height);
+
+          g.fillStyle = 'rgba(229, 57, 53, 0.72)';
+          g.beginPath();
+          g.arc(128, 92, 34, 0, Math.PI * 2);
+          g.fill();
+          drawRoundedRectPath(g, 84, 140, 88, 270, 26);
+          g.fill();
+          g.fillRect(92, 405, 28, 330);
+          g.fillRect(136, 405, 28, 330);
+
+          g.fillStyle = 'rgba(17,17,17,0.85)';
+          drawRoundedRectPath(g, 56, 8, 144, 40, 10);
+          g.fill();
+          g.fillStyle = '#FFFFFF';
+          g.font = '700 26px monospace';
+          g.textAlign = 'center';
+          g.textBaseline = 'middle';
+          g.fillText('1.70 m', 128, 29);
+
+          cachedSilhouetteUrl = c.toDataURL('image/png');
+          return cachedSilhouetteUrl;
+        }
+
+        function buildBillboardGltfDataUri(
+          widthM,
+          heightM,
+          imageDataUri,
+          hasAlpha,
+          includeGuides
+        ) {
+          const hw = widthM / 2;
+          const meshesData = [
+            {
+              name: 'AR_Billboard_1to1',
+              positions: [-hw, 0, 0, hw, 0, 0, hw, heightM, 0, -hw, heightM, 0],
+              min: [-hw, 0, 0],
+              max: [hw, heightM, 0],
+              imageUri: imageDataUri,
+              alphaMode: hasAlpha ? 'BLEND' : 'OPAQUE',
+            },
+          ];
+
+          if (includeGuides) {
+            const matW = Math.max(0.8, widthM);
+            const mhw = matW / 2;
+            const matD = Math.min(0.42, Math.max(0.24, widthM * 0.14));
+            meshesData.push({
+              name: 'Floor_Scale_Ruler',
+              positions: [
+                -mhw, 0.004, matD,
+                mhw, 0.004, matD,
+                mhw, 0.004, 0.02,
+                -mhw, 0.004, 0.02,
+              ],
+              min: [-mhw, 0.004, 0.02],
+              max: [mhw, 0.004, matD],
+              imageUri: generateRulerMatTexture(widthM, heightM),
+              alphaMode: 'BLEND',
+            });
+
+            const silX = hw + 0.45;
+            const silW = 0.56;
+            const silH = 1.7;
+            meshesData.push({
+              name: 'Human_Scale_170cm',
+              positions: [
+                silX - silW / 2, 0, 0.05,
+                silX + silW / 2, 0, 0.05,
+                silX + silW / 2, silH, 0.05,
+                silX - silW / 2, silH, 0.05,
+              ],
+              min: [silX - silW / 2, 0, 0.05],
+              max: [silX + silW / 2, silH, 0.05],
+              imageUri: getHumanSilhouetteTextureUrl(),
+              alphaMode: 'BLEND',
+            });
+          }
+
+          const bytesPerQuad = 140;
+          const totalBytes = meshesData.length * bytesPerQuad;
+          const buffer = new ArrayBuffer(totalBytes);
           const f32 = new Float32Array(buffer);
           const u16 = new Uint16Array(buffer);
 
-          // Positions: upright plane resting on Y = 0 floor, facing +Z
-          f32.set(
-            [-hw, 0, 0, hw, 0, 0, hw, h, 0, -hw, h, 0],
-            0
-          );
-          // Normals (+Z)
-          f32.set([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 12);
-          // UV Coordinates
-          f32.set([0, 1, 1, 1, 1, 0, 0, 0], 24);
-          // Triangle Indices
-          u16.set([0, 1, 2, 0, 2, 3], 64);
+          const nodes = [];
+          const meshes = [];
+          const materials = [];
+          const textures = [];
+          const images = [];
+          const bufferViews = [];
+          const accessors = [];
 
-          const binDataUri =
-            'data:application/octet-stream;base64,' +
-            arrayBufferToBase64(buffer);
+          meshesData.forEach((m, idx) => {
+            const byteBase = idx * bytesPerQuad;
+            const fBase = byteBase / 4;
+            const uBase = byteBase / 2;
 
-          const material = {
-            name: 'AR_Billboard_Material',
-            pbrMetallicRoughness: {
-              baseColorTexture: { index: 0 },
-              metallicFactor: 0.0,
-              roughnessFactor: 0.92,
-            },
-            doubleSided: true,
-            alphaMode: state.hasAlpha ? 'BLEND' : 'OPAQUE',
-          };
+            f32.set(m.positions, fBase);
+            f32.set([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], fBase + 12);
+            f32.set([0, 1, 1, 1, 1, 0, 0, 0], fBase + 24);
+            u16.set([0, 1, 2, 0, 2, 3], uBase + 64);
+
+            const bvBase = idx * 4;
+            bufferViews.push(
+              { buffer: 0, byteOffset: byteBase + 0, byteLength: 48, target: 34962 },
+              { buffer: 0, byteOffset: byteBase + 48, byteLength: 48, target: 34962 },
+              { buffer: 0, byteOffset: byteBase + 96, byteLength: 32, target: 34962 },
+              { buffer: 0, byteOffset: byteBase + 128, byteLength: 12, target: 34963 }
+            );
+
+            const accBase = idx * 4;
+            accessors.push(
+              {
+                bufferView: bvBase + 0,
+                componentType: 5126,
+                count: 4,
+                type: 'VEC3',
+                min: m.min,
+                max: m.max,
+              },
+              { bufferView: bvBase + 1, componentType: 5126, count: 4, type: 'VEC3' },
+              { bufferView: bvBase + 2, componentType: 5126, count: 4, type: 'VEC2' },
+              { bufferView: bvBase + 3, componentType: 5123, count: 6, type: 'SCALAR' }
+            );
+
+            images.push({ uri: m.imageUri });
+            textures.push({ sampler: 0, source: idx });
+            materials.push({
+              name: m.name + '_Mat',
+              pbrMetallicRoughness: {
+                baseColorTexture: { index: idx },
+                metallicFactor: 0.0,
+                roughnessFactor: 0.95,
+              },
+              alphaMode: m.alphaMode,
+              doubleSided: true,
+            });
+            meshes.push({
+              name: m.name,
+              primitives: [
+                {
+                  attributes: {
+                    POSITION: accBase + 0,
+                    NORMAL: accBase + 1,
+                    TEXCOORD_0: accBase + 2,
+                  },
+                  indices: accBase + 3,
+                  material: idx,
+                },
+              ],
+            });
+            nodes.push({ mesh: idx, name: m.name });
+          });
 
           const gltf = {
-            asset: {
-              version: '2.0',
-              generator: 'Scale Prototyper AR Engine',
-            },
+            asset: { version: '2.0', generator: 'Scale Prototyper AR 1:1' },
             scene: 0,
-            scenes: [{ nodes: [0] }],
-            nodes: [{ mesh: 0, name: 'AR_Billboard_Plane' }],
-            meshes: [
-              {
-                name: 'Billboard_Mesh',
-                primitives: [
-                  {
-                    attributes: {
-                      POSITION: 0,
-                      NORMAL: 1,
-                      TEXCOORD_0: 2,
-                    },
-                    indices: 3,
-                    material: 0,
-                  },
-                ],
-              },
-            ],
-            materials: [material],
-            textures: [{ sampler: 0, source: 0 }],
+            scenes: [{ nodes: nodes.map((_, i) => i) }],
+            nodes,
+            meshes,
+            materials,
+            textures,
             samplers: [
               {
                 magFilter: 9729,
@@ -1767,303 +2972,1304 @@
                 wrapT: 33071,
               },
             ],
-            images: [{ uri: state.textureDataUrl }],
-            buffers: [{ uri: binDataUri, byteLength: 140 }],
-            bufferViews: [
-              { buffer: 0, byteOffset: 0, byteLength: 48, target: 34962 },
-              { buffer: 0, byteOffset: 48, byteLength: 48, target: 34962 },
-              { buffer: 0, byteOffset: 96, byteLength: 32, target: 34962 },
-              { buffer: 0, byteOffset: 128, byteLength: 12, target: 34963 },
-            ],
-            accessors: [
+            images,
+            buffers: [
               {
-                bufferView: 0,
-                componentType: 5126,
-                count: 4,
-                type: 'VEC3',
-                min: [-hw, 0, 0],
-                max: [hw, h, 0],
-              },
-              {
-                bufferView: 1,
-                componentType: 5126,
-                count: 4,
-                type: 'VEC3',
-              },
-              {
-                bufferView: 2,
-                componentType: 5126,
-                count: 4,
-                type: 'VEC2',
-              },
-              {
-                bufferView: 3,
-                componentType: 5123,
-                count: 6,
-                type: 'SCALAR',
+                uri:
+                  'data:application/octet-stream;base64,' +
+                  arrayBufferToBase64(buffer),
+                byteLength: totalBytes,
               },
             ],
+            bufferViews,
+            accessors,
           };
 
-          const jsonString = JSON.stringify(gltf);
-          return 'data:model/gltf+json;base64,' + utf8ToBase64(jsonString);
-        }
-
-        function syncModelViewerAsset(dims) {
-          if (!dims) {
-            state.gltfDataUri = '';
-            state.arModelReady = false;
-            return;
-          }
-
-          state.arModelReady = false;
-          const uri = buildBillboardGltfDataUri(
-            dims.realWidth,
-            dims.realHeight
+          return (
+            'data:model/gltf+json;base64,' + utf8ToBase64(JSON.stringify(gltf))
           );
-          state.gltfDataUri = uri;
-          arModelViewer.setAttribute('src', uri);
         }
 
-        arModelViewer.addEventListener('load', function () {
-          state.arModelReady = true;
-          updateArButtonLabel();
-        });
-
-        arModelViewer.addEventListener('error', function () {
-          state.arModelReady = false;
-        });
-
-        // =====================================================================
-        // 6. UI State Synchronization
-        // =====================================================================
-
-        function updateArButtonLabel() {
-          const dims = getPhysicalDimensions();
-          if (!dims) {
-            viewArBtnLabel.textContent = 'AR 1:1 实景投影';
+        function updateModelViewerBillboard() {
+          if (
+            !state.image ||
+            !state.activeTextureDataUrl ||
+            state.realWidthMeters <= 0 ||
+            state.realHeightMeters <= 0
+          ) {
             return;
           }
-          viewArBtnLabel.textContent = `AR 1:1 实景投影 (${dims.realWidth.toFixed(2)}×${dims.realHeight.toFixed(2)}m)`;
+
+          state.modelLoaded = false;
+          state.gltfDirty = false;
+          const useFloorGuides =
+            state.includeScaleGuides && state.arPlacement === 'floor';
+          state.gltfDataUri = buildBillboardGltfDataUri(
+            state.realWidthMeters,
+            state.realHeightMeters,
+            state.activeTextureDataUrl,
+            state.activeHasAlpha,
+            useFloorGuides
+          );
+
+          modelViewer.setAttribute('ar-placement', state.arPlacement);
+          modelViewer.setAttribute('src', state.gltfDataUri);
+          arModalTitle.textContent =
+            '1:1 空间展板预览（' +
+            state.realWidthMeters.toFixed(2) +
+            ' × ' +
+            state.realHeightMeters.toFixed(2) +
+            ' m）';
         }
 
-        function updateMetricsAndUI(rebuildMode) {
-          const dims = getPhysicalDimensions();
-          const hasLine = getPixelLineLength() >= 6;
+        modelViewer.addEventListener('load', function () {
+          state.modelLoaded = true;
+          updateModalArButtonState();
+        });
 
-          clearLineBtn.disabled = !hasLine;
-          viewArBtn.disabled = !dims;
-          preview3dBtn.disabled = !dims;
-
-          if (!state.image) {
-            metaStrip.innerHTML = '<span>等待上传图像</span>';
-            updateArButtonLabel();
-            return;
+        function updateModalArButtonState() {
+          const arCapable = Boolean(modelViewer.canActivateAR);
+          modalActivateArBtn.disabled = !arCapable;
+          if (arCapable) {
+            modalActivateArBtn.textContent = '启动苹果 AR / WebXR';
+            arModalNote.textContent = envInfo.isIOS
+              ? '进入苹果 AR Quick Look 后，请缓慢左右移动手机扫描地面，出现投影后单指轻点锁定位置。'
+              : '点击启动 WebXR / AR 实景查看，将展板按 1:1 尺寸锚定在地面或墙面。';
+          } else {
+            modalActivateArBtn.textContent = '当前浏览器不支持 Quick Look';
+            arModalNote.textContent = envInfo.isInAppOrAltIOS
+              ? '请点击右上角「在 Safari 中打开」以启用苹果 AR Quick Look，或使用「4 点定标实景 AR」。'
+              : '桌面端可在此旋转检查 3D 展板（若滑偏可点右上角「归位视角」）。';
           }
+        }
 
-          if (!hasLine) {
-            canvasHint.textContent = '在图上拖拽绘制已知尺寸的参考线段 A → B';
-            metaStrip.innerHTML = `
-              <span>图像 <span class="meta-strong">${state.intrinsicWidth}×${state.intrinsicHeight} px</span></span>
-              <span class="meta-sep" aria-hidden="true">·</span>
-              <span>${state.hasAlpha ? '透明 PNG' : '不透明图像'}</span>
-              <span class="meta-sep" aria-hidden="true">·</span>
-              <span>请在画布上划出参考线</span>
-            `;
-            updateArButtonLabel();
-            if (rebuildMode !== 'none') syncModelViewerAsset(null);
-            return;
-          }
+        // =====================================================================
+        // 9. Camera 4-Point Plane Calibration & Relative Dragging Engine
+        // =====================================================================
+        const camState = {
+          isOpen: false,
+          stream: null,
+          rafId: null,
+          isFrozen: false,
+          bgImage: null,
+          cssW: 1,
+          cssH: 1,
+          dpr: 1,
 
-          canvasHint.textContent = '可拖拽端点 A 或 B 微调位置，或重新划定线段';
+          quadNorm: [
+            { x: 0.34, y: 0.56 },
+            { x: 0.66, y: 0.56 },
+            { x: 0.78, y: 0.82 },
+            { x: 0.22, y: 0.82 },
+          ],
+          quadWidthM: 1.0,
+          quadDepthM: 1.0,
 
-          if (!dims) {
-            metaStrip.innerHTML = `
-              <span>线段 <span class="meta-strong">${Math.round(getPixelLineLength())} px</span></span>
-              <span class="meta-sep" aria-hidden="true">·</span>
-              <span>请输入大于 0 的实际米数</span>
-            `;
-            updateArButtonLabel();
-            if (rebuildMode !== 'none') syncModelViewerAsset(null);
-            return;
-          }
+          offsetX: 0,
+          offsetZ: 0,
+          headingDeg: 0,
+          showGuides: true,
+          pose: null,
 
-          const mmPerPx = (dims.scale * 1000).toFixed(2);
-          metaStrip.innerHTML = `
-            <span>线段 <span class="meta-strong">${Math.round(dims.lPx)} px</span></span>
-            <span class="meta-sep" aria-hidden="true">·</span>
-            <span>精度 <span class="meta-strong">${mmPerPx} mm/px</span></span>
-            <span class="meta-sep" aria-hidden="true">·</span>
-            <span>实景展板 <span class="meta-strong">${dims.realWidth.toFixed(2)} × ${dims.realHeight.toFixed(2)} m</span></span>
+          dragTarget: null,
+          activePointerId: null,
+          // Relative drag tracking so tapping never teleports the image off-screen
+          dragStartOffset: { x: 0, z: 0 },
+          dragStartFloor: null,
+          dragStartCss: null,
+        };
+
+        let gl = null;
+        let glProg = null;
+        let glPosBuf = null;
+        let glUvBuf = null;
+        let glArtworkTex = null;
+        let glSilhouetteTex = null;
+        let glNeedsTexUpload = true;
+
+        function initWebGLIfNeeded() {
+          if (gl) return Boolean(glProg);
+          gl =
+            arWebglCanvas.getContext('webgl', {
+              alpha: true,
+              premultipliedAlpha: false,
+              preserveDrawingBuffer: true,
+              antialias: true,
+            }) ||
+            arWebglCanvas.getContext('experimental-webgl', {
+              alpha: true,
+              preserveDrawingBuffer: true,
+            });
+          if (!gl) return false;
+
+          const vsSrc = `
+            attribute vec3 aPos;
+            attribute vec2 aUv;
+            uniform mat3 uR;
+            uniform vec3 uT;
+            uniform float uF;
+            uniform float uHalfW;
+            uniform float uHalfH;
+            varying vec2 vUv;
+            void main() {
+              vec3 pCam = uR * aPos + uT;
+              float z = max(0.05, pCam.z);
+              float xNdc = (uF * pCam.x / z) / uHalfW;
+              float yNdc = -(uF * pCam.y / z) / uHalfH;
+              float nearP = 0.05;
+              float farP = 100.0;
+              float zNdc = ((farP + nearP) / (farP - nearP)) + ((-2.0 * farP * nearP) / (farP - nearP)) / z;
+              gl_Position = vec4(xNdc, yNdc, zNdc, 1.0);
+              vUv = aUv;
+            }
+          `;
+          const fsSrc = `
+            precision mediump float;
+            varying vec2 vUv;
+            uniform sampler2D uTex;
+            uniform vec4 uColor;
+            uniform int uUseTex;
+            void main() {
+              if (uUseTex == 1) {
+                gl_FragColor = texture2D(uTex, vUv) * uColor;
+              } else {
+                gl_FragColor = uColor;
+              }
+            }
           `;
 
-          mvModalTitle.textContent = `1:1 空间展板预览 (${dims.realWidth.toFixed(2)} × ${dims.realHeight.toFixed(2)} m)`;
-          mvFooterDims.textContent = arModelViewer.canActivateAR
-            ? '点击右侧按钮即可进入 1:1 实景地面锚定。'
-            : '请使用 iPhone / iPad Safari 或支持 WebXR 的安卓浏览器打开以启动 AR。';
+          function compile(type, src) {
+            const s = gl.createShader(type);
+            gl.shaderSource(s, src);
+            gl.compileShader(s);
+            return s;
+          }
 
-          updateArButtonLabel();
+          glProg = gl.createProgram();
+          gl.attachShader(glProg, compile(gl.VERTEX_SHADER, vsSrc));
+          gl.attachShader(glProg, compile(gl.FRAGMENT_SHADER, fsSrc));
+          gl.linkProgram(glProg);
 
-          if (rebuildMode === 'immediate') {
-            clearTimeout(state.rebuildTimer);
-            syncModelViewerAsset(dims);
-          } else if (rebuildMode === 'debounced') {
-            clearTimeout(state.rebuildTimer);
-            state.rebuildTimer = setTimeout(function () {
-              syncModelViewerAsset(dims);
-            }, 120);
+          glPosBuf = gl.createBuffer();
+          glUvBuf = gl.createBuffer();
+          return true;
+        }
+
+        function createTextureFromImageSource(imgOrCanvas) {
+          const tex = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            imgOrCanvas
+          );
+          return tex;
+        }
+
+        function ensureWebGLTextures() {
+          if (!gl || !state.activeTextureSource) return;
+          if (glNeedsTexUpload) {
+            if (glArtworkTex) gl.deleteTexture(glArtworkTex);
+            const src = state.activeTextureSource;
+            const sw = src.naturalWidth || src.width;
+            const sh = src.naturalHeight || src.height;
+            const maxT = 2048;
+            let tw = sw;
+            let th = sh;
+            if (Math.max(tw, th) > maxT) {
+              const r = maxT / Math.max(tw, th);
+              tw = Math.round(tw * r);
+              th = Math.round(th * r);
+            }
+            const tmp = document.createElement('canvas');
+            tmp.width = tw;
+            tmp.height = th;
+            tmp.getContext('2d').drawImage(src, 0, 0, tw, th);
+            glArtworkTex = createTextureFromImageSource(tmp);
+            glNeedsTexUpload = false;
+          }
+          if (!glSilhouetteTex) {
+            const silImg = new Image();
+            silImg.onload = function () {
+              if (gl) {
+                glSilhouetteTex = createTextureFromImageSource(silImg);
+                renderCameraWebGL();
+              }
+            };
+            silImg.src = getHumanSilhouetteTextureUrl();
           }
         }
 
-        // =====================================================================
-        // 7. Interactive Controls & Event Bindings
-        // =====================================================================
+        function cross(a, b) {
+          return [
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0],
+          ];
+        }
+        function dot(a, b) {
+          return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        }
+        function norm(a) {
+          return Math.hypot(a[0], a[1], a[2]);
+        }
+        function normalize(a) {
+          const n = norm(a) || 1;
+          return [a[0] / n, a[1] / n, a[2] / n];
+        }
 
-        uploadTriggerBtn.addEventListener('click', function () {
-          imageInput.click();
-        });
+        function solveFloorPoseFromQuad() {
+          const W = camState.cssW;
+          const H = camState.cssH;
+          if (W < 10 || H < 10) return null;
 
-        replaceImageBtn.addEventListener('click', function () {
-          imageInput.click();
-        });
+          const cx = W / 2;
+          const cy = H / 2;
+          const qw = Math.max(0.1, camState.quadWidthM);
+          const qd = Math.max(0.1, camState.quadDepthM);
 
-        sampleTriggerBtn.addEventListener('click', function () {
-          generateSampleExhibitionRender();
-        });
+          const pts = camState.quadNorm.map((p) => ({
+            u: p.x * W - cx,
+            v: p.y * H - cy,
+          }));
 
-        imageInput.addEventListener('change', function (e) {
-          const file = e.target.files && e.target.files[0];
-          if (file) {
-            handleImageFile(file);
+          let sign = 0;
+          for (let i = 0; i < 4; i++) {
+            const p0 = pts[i];
+            const p1 = pts[(i + 1) % 4];
+            const p2 = pts[(i + 2) % 4];
+            const cp =
+              (p1.u - p0.u) * (p2.v - p1.v) - (p1.v - p0.v) * (p2.u - p1.u);
+            if (Math.abs(cp) < 1e-3) return null;
+            const s = cp > 0 ? 1 : -1;
+            if (sign === 0) sign = s;
+            else if (sign !== s) return null;
           }
-          imageInput.value = '';
-        });
 
-        workspaceArea.addEventListener('dragover', function (e) {
-          e.preventDefault();
-          emptyStage.classList.add('is-dragover');
-        });
+          const worldPts = [
+            [-qw / 2, -qd / 2],
+            [qw / 2, -qd / 2],
+            [qw / 2, qd / 2],
+            [-qw / 2, qd / 2],
+          ];
 
-        workspaceArea.addEventListener('dragleave', function () {
-          emptyStage.classList.remove('is-dragover');
-        });
-
-        workspaceArea.addEventListener('drop', function (e) {
-          e.preventDefault();
-          emptyStage.classList.remove('is-dragover');
-          const file =
-            e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-          if (file) {
-            handleImageFile(file);
+          const A = [];
+          const b = [];
+          for (let i = 0; i < 4; i++) {
+            const X = worldPts[i][0];
+            const Z = worldPts[i][1];
+            const u = pts[i].u;
+            const v = pts[i].v;
+            A.push([X, Z, 1, 0, 0, 0, -u * X, -u * Z]);
+            b.push(u);
+            A.push([0, 0, 0, X, Z, 1, -v * X, -v * Z]);
+            b.push(v);
           }
-        });
 
-        clearLineBtn.addEventListener('click', function () {
-          state.pointA = null;
-          state.pointB = null;
-          renderCanvas();
-          updateMetricsAndUI('immediate');
-        });
+          const h = solveLinear8(A, b);
+          if (!h) return null;
 
-        function syncPresetActiveState() {
-          const val = parseFloat(realLengthInput.value);
-          presetButtons.forEach(function (btn) {
-            const target = parseFloat(btn.dataset.meters);
-            btn.classList.toggle(
-              'is-active',
-              Number.isFinite(val) && Math.abs(val - target) < 0.001
+          const h1 = [h[0], h[3], h[6]];
+          const h2 = [h[1], h[4], h[7]];
+          const h3 = [h[2], h[5], 1];
+
+          const fDefault = 0.88 * Math.max(W, H);
+          const fMin = 0.55 * Math.max(W, H);
+          const fMax = 1.75 * Math.max(W, H);
+
+          const fEstimates = [];
+          const d1 = h1[2] * h2[2];
+          const n1 = -(h1[0] * h2[0] + h1[1] * h2[1]);
+          if (Math.abs(d1) > 1e-6 && n1 / d1 > 0) fEstimates.push(Math.sqrt(n1 / d1));
+
+          const d2 = h1[2] * h1[2] - h2[2] * h2[2];
+          const n2 = -(
+            h1[0] * h1[0] +
+            h1[1] * h1[1] -
+            (h2[0] * h2[0] + h2[1] * h2[1])
+          );
+          if (Math.abs(d2) > 1e-6 && n2 / d2 > 0) fEstimates.push(Math.sqrt(n2 / d2));
+
+          let f = fDefault;
+          if (fEstimates.length > 0) {
+            const avg =
+              fEstimates.reduce((acc, v) => acc + v, 0) / fEstimates.length;
+            f = Math.max(fMin, Math.min(fMax, avg));
+          }
+
+          let q1 = [h1[0] / f, h1[1] / f, h1[2]];
+          let q2 = [h2[0] / f, h2[1] / f, h2[2]];
+          let q3 = [h3[0] / f, h3[1] / f, h3[2]];
+
+          if (q3[2] < 0) {
+            q1 = q1.map((v) => -v);
+            q2 = q2.map((v) => -v);
+            q3 = q3.map((v) => -v);
+          }
+
+          const lambda = 2 / (norm(q1) + norm(q2));
+          const t = q3.map((v) => v * lambda);
+          if (t[2] <= 0.05) return null;
+
+          const r1 = normalize(q1);
+          const proj = dot(r1, q2);
+          const r2 = normalize([
+            q2[0] - proj * r1[0],
+            q2[1] - proj * r1[1],
+            q2[2] - proj * r1[2],
+          ]);
+
+          let rUp = normalize(cross(r2, r1));
+          if (dot(rUp, t) > 0) rUp = rUp.map((v) => -v);
+
+          return { f, cx, cy, r1, rUp, r2, t, valid: true };
+        }
+
+        function projectWorldPoint(pose, wx, wy, wz) {
+          const pCam = [
+            wx * pose.r1[0] + wy * pose.rUp[0] + wz * pose.r2[0] + pose.t[0],
+            wx * pose.r1[1] + wy * pose.rUp[1] + wz * pose.r2[1] + pose.t[1],
+            wx * pose.r1[2] + wy * pose.rUp[2] + wz * pose.r2[2] + pose.t[2],
+          ];
+          if (pCam[2] <= 0.05) return null;
+          return {
+            x: pose.cx + (pose.f * pCam[0]) / pCam[2],
+            y: pose.cy + (pose.f * pCam[1]) / pCam[2],
+            zCam: pCam[2],
+          };
+        }
+
+        function screenToFloorMeters(pose, cssX, cssY) {
+          const dir = [
+            (cssX - pose.cx) / pose.f,
+            (cssY - pose.cy) / pose.f,
+            1,
+          ];
+          const denom = dot(pose.rUp, dir);
+          if (Math.abs(denom) < 1e-4) return null;
+          const s = dot(pose.rUp, pose.t) / denom;
+          // Reject rays pointing above the horizon or excessively far (> 18m)
+          if (s <= 0.25 || s > 18) return null;
+
+          const pCam = [s * dir[0], s * dir[1], s * dir[2]];
+          const rel = [
+            pCam[0] - pose.t[0],
+            pCam[1] - pose.t[1],
+            pCam[2] - pose.t[2],
+          ];
+          return {
+            x: dot(rel, pose.r1),
+            z: dot(rel, pose.r2),
+          };
+        }
+
+        function clampOffsetInFrontOfCamera(pose, nextX, nextZ) {
+          // Bound within +-7m of the calibrated quad center AND ensure center stays > 0.45m in front of camera
+          const clampedX = Math.max(-7, Math.min(7, nextX));
+          const clampedZ = Math.max(-7, Math.min(7, nextZ));
+          const zCam =
+            clampedX * pose.r1[2] + clampedZ * pose.r2[2] + pose.t[2];
+          if (zCam < 0.45) {
+            return { x: camState.offsetX, z: camState.offsetZ };
+          }
+          return { x: clampedX, z: clampedZ };
+        }
+
+        function syncFloatingResetHighlight() {
+          const shifted =
+            Math.abs(camState.offsetX) > 0.05 ||
+            Math.abs(camState.offsetZ) > 0.05 ||
+            Math.abs(camState.headingDeg) > 0.5;
+          camFloatingResetBtn.classList.toggle('is-shifted', shifted);
+        }
+
+        function renderCameraWebGL() {
+          if (!gl || !glProg || !camState.pose || !state.activeTextureSource)
+            return;
+          ensureWebGLTextures();
+
+          gl.viewport(0, 0, arWebglCanvas.width, arWebglCanvas.height);
+          gl.clearColor(0, 0, 0, 0);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+          gl.enable(gl.DEPTH_TEST);
+          gl.enable(gl.BLEND);
+          gl.blendFuncSeparate(
+            gl.SRC_ALPHA,
+            gl.ONE_MINUS_SRC_ALPHA,
+            gl.ONE,
+            gl.ONE_MINUS_SRC_ALPHA
+          );
+
+          const pose = camState.pose;
+          gl.useProgram(glProg);
+
+          const mat3R = new Float32Array([
+            pose.r1[0], pose.r1[1], pose.r1[2],
+            pose.rUp[0], pose.rUp[1], pose.rUp[2],
+            pose.r2[0], pose.r2[1], pose.r2[2],
+          ]);
+          gl.uniformMatrix3fv(gl.getUniformLocation(glProg, 'uR'), false, mat3R);
+          gl.uniform3fv(gl.getUniformLocation(glProg, 'uT'), pose.t);
+          gl.uniform1f(gl.getUniformLocation(glProg, 'uF'), pose.f);
+          gl.uniform1f(gl.getUniformLocation(glProg, 'uHalfW'), camState.cssW / 2);
+          gl.uniform1f(gl.getUniformLocation(glProg, 'uHalfH'), camState.cssH / 2);
+
+          const aPosLoc = gl.getAttribLocation(glProg, 'aPos');
+          const aUvLoc = gl.getAttribLocation(glProg, 'aUv');
+          const uTexLoc = gl.getUniformLocation(glProg, 'uTex');
+          const uUseTexLoc = gl.getUniformLocation(glProg, 'uUseTex');
+          const uColorLoc = gl.getUniformLocation(glProg, 'uColor');
+
+          const rad = (camState.headingDeg * Math.PI) / 180;
+          const cosA = Math.cos(rad);
+          const sinA = Math.sin(rad);
+
+          function toWorld(lx, ly, lz) {
+            return [
+              camState.offsetX + lx * cosA + lz * sinA,
+              ly,
+              camState.offsetZ - lx * sinA + lz * cosA,
+            ];
+          }
+
+          function drawTexturedQuad(verts, tex) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, glPosBuf);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.DYNAMIC_DRAW);
+            gl.enableVertexAttribArray(aPosLoc);
+            gl.vertexAttribPointer(aPosLoc, 3, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, glUvBuf);
+            gl.bufferData(
+              gl.ARRAY_BUFFER,
+              new Float32Array([0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0]),
+              gl.STATIC_DRAW
+            );
+            gl.enableVertexAttribArray(aUvLoc);
+            gl.vertexAttribPointer(aUvLoc, 2, gl.FLOAT, false, 0, 0);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.uniform1i(uTexLoc, 0);
+            gl.uniform1i(uUseTexLoc, 1);
+            gl.uniform4f(uColorLoc, 1, 1, 1, 1);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+
+          const hw = state.realWidthMeters / 2;
+          const h = state.realHeightMeters;
+
+          if (state.includeScaleGuides && glSilhouetteTex) {
+            const sx = hw + 0.45;
+            const sw = 0.28;
+            const sh = 1.7;
+            const s0 = toWorld(sx - sw, 0, 0.05);
+            const s1 = toWorld(sx + sw, 0, 0.05);
+            const s2 = toWorld(sx + sw, sh, 0.05);
+            const s3 = toWorld(sx - sw, sh, 0.05);
+            drawTexturedQuad([...s0, ...s1, ...s2, ...s0, ...s2, ...s3], glSilhouetteTex);
+          }
+
+          if (glArtworkTex) {
+            const p0 = toWorld(-hw, 0, 0);
+            const p1 = toWorld(hw, 0, 0);
+            const p2 = toWorld(hw, h, 0);
+            const p3 = toWorld(-hw, h, 0);
+            drawTexturedQuad([...p0, ...p1, ...p2, ...p0, ...p2, ...p3], glArtworkTex);
+          }
+        }
+
+        function renderCameraUiOverlay() {
+          const W = camState.cssW;
+          const H = camState.cssH;
+          arUiCtx.clearRect(0, 0, W, H);
+          const pose = camState.pose;
+
+          if (pose && camState.showGuides) {
+            arUiCtx.save();
+            arUiCtx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+            arUiCtx.lineWidth = 1;
+            const gridSpan = 3;
+            for (let g = -gridSpan; g <= gridSpan; g++) {
+              const a = projectWorldPoint(
+                pose,
+                camState.offsetX + g,
+                0,
+                camState.offsetZ - gridSpan
+              );
+              const b = projectWorldPoint(
+                pose,
+                camState.offsetX + g,
+                0,
+                camState.offsetZ + gridSpan
+              );
+              if (a && b) {
+                arUiCtx.beginPath();
+                arUiCtx.moveTo(a.x, a.y);
+                arUiCtx.lineTo(b.x, b.y);
+                arUiCtx.stroke();
+              }
+              const c = projectWorldPoint(
+                pose,
+                camState.offsetX - gridSpan,
+                0,
+                camState.offsetZ + g
+              );
+              const d = projectWorldPoint(
+                pose,
+                camState.offsetX + gridSpan,
+                0,
+                camState.offsetZ + g
+              );
+              if (c && d) {
+                arUiCtx.beginPath();
+                arUiCtx.moveTo(c.x, c.y);
+                arUiCtx.lineTo(d.x, d.y);
+                arUiCtx.stroke();
+              }
+            }
+
+            const rad = (camState.headingDeg * Math.PI) / 180;
+            const cosA = Math.cos(rad);
+            const sinA = Math.sin(rad);
+            const hw = state.realWidthMeters / 2;
+            const fL = projectWorldPoint(
+              pose,
+              camState.offsetX - hw * cosA,
+              0,
+              camState.offsetZ + hw * sinA
+            );
+            const fR = projectWorldPoint(
+              pose,
+              camState.offsetX + hw * cosA,
+              0,
+              camState.offsetZ - hw * sinA
+            );
+            if (fL && fR) {
+              arUiCtx.strokeStyle = ACCENT_RED;
+              arUiCtx.lineWidth = 3;
+              arUiCtx.beginPath();
+              arUiCtx.moveTo(fL.x, fL.y);
+              arUiCtx.lineTo(fR.x, fR.y);
+              arUiCtx.stroke();
+
+              const mx = (fL.x + fR.x) / 2;
+              const my = (fL.y + fR.y) / 2 + 16;
+              const dimLabel = `${state.realWidthMeters.toFixed(2)}m × ${state.realHeightMeters.toFixed(2)}m`;
+              arUiCtx.font = '600 11px "JetBrains Mono", monospace';
+              const tw = arUiCtx.measureText(dimLabel).width + 14;
+              arUiCtx.fillStyle = 'rgba(17,17,17,0.85)';
+              drawRoundedRectPath(arUiCtx, mx - tw / 2, my - 11, tw, 22, 6);
+              arUiCtx.fill();
+              arUiCtx.fillStyle = '#FFFFFF';
+              arUiCtx.textAlign = 'center';
+              arUiCtx.textBaseline = 'middle';
+              arUiCtx.fillText(dimLabel, mx, my);
+            }
+            arUiCtx.restore();
+          }
+
+          if (camState.showGuides) {
+            const pts = camState.quadNorm.map((p) => ({
+              x: p.x * W,
+              y: p.y * H,
+            }));
+
+            arUiCtx.save();
+            arUiCtx.fillStyle = pose
+              ? 'rgba(229, 57, 53, 0.14)'
+              : 'rgba(229, 57, 53, 0.25)';
+            arUiCtx.strokeStyle = pose ? ACCENT_RED : '#FF8A80';
+            arUiCtx.lineWidth = 2;
+            arUiCtx.setLineDash([6, 4]);
+            arUiCtx.beginPath();
+            arUiCtx.moveTo(pts[0].x, pts[0].y);
+            arUiCtx.lineTo(pts[1].x, pts[1].y);
+            arUiCtx.lineTo(pts[2].x, pts[2].y);
+            arUiCtx.lineTo(pts[3].x, pts[3].y);
+            arUiCtx.closePath();
+            arUiCtx.fill();
+            arUiCtx.stroke();
+            arUiCtx.setLineDash([]);
+
+            pts.forEach((pt, idx) => {
+              drawEndpointHandle(arUiCtx, pt.x, pt.y, String(idx + 1), ACCENT_RED);
+            });
+            arUiCtx.restore();
+
+            camBannerHint.textContent = pose
+              ? '拖拽 1–4 对齐地面参照框 · 单指滑动平移（右下角可一键归位）'
+              : '四个角点需按顺时针（1左上→2右上→3右下→4左下）围成凸四边形';
+          }
+        }
+
+        function updateCameraScene() {
+          camState.pose = solveFloorPoseFromQuad();
+          renderCameraWebGL();
+          renderCameraUiOverlay();
+          syncFloatingResetHighlight();
+        }
+
+        function resetCameraPlacement() {
+          camState.offsetX = 0;
+          camState.offsetZ = 0;
+          camState.headingDeg = 0;
+          camHeadingSlider.value = '0';
+          camHeadingVal.textContent = '0°';
+          updateCameraScene();
+        }
+
+        function resizeCameraCanvases() {
+          if (!camState.isOpen) return;
+          const rect = camStage.getBoundingClientRect();
+          const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+          const cssW = Math.max(1, Math.floor(rect.width));
+          const cssH = Math.max(1, Math.floor(rect.height));
+
+          camState.cssW = cssW;
+          camState.cssH = cssH;
+          camState.dpr = dpr;
+
+          [arBgCanvas, arWebglCanvas, arUiCanvas].forEach((c) => {
+            c.width = Math.floor(cssW * dpr);
+            c.height = Math.floor(cssH * dpr);
+            c.style.width = cssW + 'px';
+            c.style.height = cssH + 'px';
+          });
+
+          arBgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          arUiCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+          if (camState.bgImage) drawCameraBgSource(camState.bgImage);
+          updateCameraScene();
+        }
+
+        function drawCameraBgSource(sourceEl) {
+          const W = camState.cssW;
+          const H = camState.cssH;
+          const sw = sourceEl.videoWidth || sourceEl.naturalWidth || sourceEl.width;
+          const sh =
+            sourceEl.videoHeight || sourceEl.naturalHeight || sourceEl.height;
+          if (!sw || !sh) return;
+
+          const scale = Math.max(W / sw, H / sh);
+          const dw = sw * scale;
+          const dh = sh * scale;
+          const dx = (W - dw) / 2;
+          const dy = (H - dh) / 2;
+
+          arBgCtx.fillStyle = '#111111';
+          arBgCtx.fillRect(0, 0, W, H);
+          arBgCtx.drawImage(sourceEl, dx, dy, dw, dh);
+        }
+
+        function startCameraLoop() {
+          stopCameraLoop();
+          function tick() {
+            if (!camState.isOpen) return;
+            if (
+              !camState.isFrozen &&
+              !camState.bgImage &&
+              arCameraVideo.readyState >= 2
+            ) {
+              drawCameraBgSource(arCameraVideo);
+            }
+            camState.rafId = requestAnimationFrame(tick);
+          }
+          camState.rafId = requestAnimationFrame(tick);
+        }
+
+        function stopCameraLoop() {
+          if (camState.rafId) {
+            cancelAnimationFrame(camState.rafId);
+            camState.rafId = null;
+          }
+        }
+
+        function generateSampleGalleryFloorPhoto() {
+          const w = 1280;
+          const h = 960;
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          const g = c.getContext('2d');
+
+          const wallGrad = g.createLinearGradient(0, 0, 0, h * 0.48);
+          wallGrad.addColorStop(0, '#D7D5CE');
+          wallGrad.addColorStop(1, '#EAE8E2');
+          g.fillStyle = wallGrad;
+          g.fillRect(0, 0, w, h * 0.48);
+
+          const floorGrad = g.createLinearGradient(0, h * 0.48, 0, h);
+          floorGrad.addColorStop(0, '#B9B5AC');
+          floorGrad.addColorStop(1, '#8E8A81');
+          g.fillStyle = floorGrad;
+          g.fillRect(0, h * 0.48, w, h * 0.52);
+
+          g.strokeStyle = '#6E6B64';
+          g.lineWidth = 3;
+          g.beginPath();
+          g.moveTo(0, h * 0.48);
+          g.lineTo(w, h * 0.48);
+          g.stroke();
+
+          const vx = w * 0.5;
+          const vy = h * 0.3;
+          g.strokeStyle = 'rgba(60, 58, 52, 0.35)';
+          g.lineWidth = 2;
+          for (let i = -8; i <= 8; i++) {
+            const bx = vx + i * 160;
+            g.beginPath();
+            g.moveTo(bx, h);
+            const t = (h * 0.48 - vy) / (h - vy);
+            g.lineTo(vx + (bx - vx) * t, h * 0.48);
+            g.stroke();
+          }
+
+          [0.51, 0.56, 0.62, 0.7, 0.8, 0.92].forEach((yf) => {
+            g.beginPath();
+            g.moveTo(0, h * yf);
+            g.lineTo(w, h * yf);
+            g.stroke();
+          });
+
+          g.strokeStyle = 'rgba(229, 57, 53, 0.65)';
+          g.lineWidth = 4;
+          const tl = [vx - (vx - 480) * ((0.56 - 0.3) / 0.7), h * 0.56];
+          const tr = [vx + (800 - vx) * ((0.56 - 0.3) / 0.7), h * 0.56];
+          const br = [vx + (800 - vx) * ((0.8 - 0.3) / 0.7), h * 0.8];
+          const bl = [vx - (vx - 480) * ((0.8 - 0.3) / 0.7), h * 0.8];
+          g.beginPath();
+          g.moveTo(tl[0], tl[1]);
+          g.lineTo(tr[0], tr[1]);
+          g.lineTo(br[0], br[1]);
+          g.lineTo(bl[0], bl[1]);
+          g.closePath();
+          g.stroke();
+
+          const img = new Image();
+          img.onload = function () {
+            camState.bgImage = img;
+            camState.isFrozen = true;
+            camFallbackCard.classList.remove('is-visible');
+            drawCameraBgSource(img);
+            updateCameraScene();
+          };
+          img.src = c.toDataURL('image/jpeg', 0.92);
+        }
+
+        async function openCameraArView() {
+          if (!state.image || state.realWidthMeters <= 0) return;
+
+          glNeedsTexUpload = true;
+          camState.isOpen = true;
+          camState.isFrozen = false;
+          camState.bgImage = null;
+          camState.offsetX = 0;
+          camState.offsetZ = 0;
+          camState.headingDeg = 0;
+          camHeadingSlider.value = '0';
+          camHeadingVal.textContent = '0°';
+          camFreezeBtn.textContent = '定格画面';
+          camFreezeBtn.classList.remove('is-active');
+          camFallbackCard.classList.remove('is-visible');
+
+          camTitleMeta.textContent = `4 点平面定标 · ${state.realWidthMeters.toFixed(2)}×${state.realHeightMeters.toFixed(2)}m`;
+          cameraArOverlay.classList.add('is-open');
+
+          initWebGLIfNeeded();
+          resizeCameraCanvases();
+
+          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                  facingMode: { ideal: 'environment' },
+                  width: { ideal: 1920 },
+                  height: { ideal: 1080 },
+                },
+                audio: false,
+              });
+              if (!camState.isOpen) {
+                stream.getTracks().forEach((t) => t.stop());
+                return;
+              }
+              camState.stream = stream;
+              arCameraVideo.srcObject = stream;
+              await arCameraVideo.play();
+              startCameraLoop();
+            } catch (_) {
+              camFallbackCard.classList.add('is-visible');
+            }
+          } else {
+            camFallbackCard.classList.add('is-visible');
+          }
+        }
+
+        function closeCameraArView() {
+          camState.isOpen = false;
+          stopCameraLoop();
+          hideMagnifier();
+          if (camState.stream) {
+            camState.stream.getTracks().forEach((t) => t.stop());
+            camState.stream = null;
+          }
+          arCameraVideo.srcObject = null;
+          cameraArOverlay.classList.remove('is-open');
+        }
+
+        function updateCamMagnifier(clientX, clientY, cssX, cssY) {
+          showMagnifierAt(clientX, clientY, function (mCtx, magW, magH) {
+            mCtx.fillStyle = '#111111';
+            mCtx.fillRect(0, 0, magW, magH);
+
+            const backing = arBgCanvas.width / Math.max(1, camState.cssW);
+            const loupeSrcCss = LOUPE_SIZE_CSS / LOUPE_ZOOM;
+            const sx = (cssX - loupeSrcCss / 2) * backing;
+            const sy = (cssY - loupeSrcCss / 2) * backing;
+            const sSize = loupeSrcCss * backing;
+
+            mCtx.drawImage(
+              arBgCanvas,
+              sx,
+              sy,
+              sSize,
+              sSize,
+              0,
+              0,
+              magW,
+              magH
             );
           });
         }
 
-        realLengthInput.addEventListener('input', function () {
-          syncPresetActiveState();
-          renderCanvas();
-          updateMetricsAndUI('debounced');
+        arUiCanvas.addEventListener('pointerdown', function (e) {
+          if (!camState.isOpen) return;
+          e.preventDefault();
+          arUiCanvas.setPointerCapture(e.pointerId);
+          camState.activePointerId = e.pointerId;
+
+          const rect = arUiCanvas.getBoundingClientRect();
+          const cssX = e.clientX - rect.left;
+          const cssY = e.clientY - rect.top;
+
+          if (camState.showGuides) {
+            let bestIdx = -1;
+            let bestDist = 30;
+            camState.quadNorm.forEach((p, idx) => {
+              const d = Math.hypot(
+                cssX - p.x * camState.cssW,
+                cssY - p.y * camState.cssH
+              );
+              if (d < bestDist) {
+                bestDist = d;
+                bestIdx = idx;
+              }
+            });
+            if (bestIdx >= 0) {
+              camState.dragTarget = 'q' + bestIdx;
+              updateCamMagnifier(e.clientX, e.clientY, cssX, cssY);
+              return;
+            }
+          }
+
+          // Relative drag: record starting anchor & finger floor intersection (never teleports on tap!)
+          if (camState.pose) {
+            camState.dragTarget = 'moveModel';
+            camState.dragStartOffset = {
+              x: camState.offsetX,
+              z: camState.offsetZ,
+            };
+            camState.dragStartFloor = screenToFloorMeters(
+              camState.pose,
+              cssX,
+              cssY
+            );
+            camState.dragStartCss = { x: cssX, y: cssY };
+          }
         });
 
-        presetButtons.forEach(function (btn) {
+        arUiCanvas.addEventListener('pointermove', function (e) {
+          if (!camState.dragTarget || e.pointerId !== camState.activePointerId)
+            return;
+          e.preventDefault();
+          const rect = arUiCanvas.getBoundingClientRect();
+          const cssX = Math.max(0, Math.min(camState.cssW, e.clientX - rect.left));
+          const cssY = Math.max(0, Math.min(camState.cssH, e.clientY - rect.top));
+
+          if (camState.dragTarget.startsWith('q')) {
+            const idx = parseInt(camState.dragTarget.slice(1), 10);
+            camState.quadNorm[idx] = {
+              x: cssX / camState.cssW,
+              y: cssY / camState.cssH,
+            };
+            updateCamMagnifier(e.clientX, e.clientY, cssX, cssY);
+            updateCameraScene();
+          } else if (camState.dragTarget === 'moveModel' && camState.pose) {
+            const curFloor = screenToFloorMeters(camState.pose, cssX, cssY);
+            let nextX = camState.offsetX;
+            let nextZ = camState.offsetZ;
+
+            if (camState.dragStartFloor && curFloor) {
+              const dx = curFloor.x - camState.dragStartFloor.x;
+              const dz = curFloor.z - camState.dragStartFloor.z;
+              // Guard against horizon jumps
+              if (Math.hypot(dx, dz) < 10) {
+                nextX = camState.dragStartOffset.x + dx;
+                nextZ = camState.dragStartOffset.z + dz;
+              }
+            } else if (camState.dragStartCss) {
+              // Gentle screen-space fallback if user started touching above horizon
+              const dxCss = (cssX - camState.dragStartCss.x) / camState.cssW;
+              const dyCss = (cssY - camState.dragStartCss.y) / camState.cssH;
+              nextX = camState.dragStartOffset.x + dxCss * 3.0;
+              nextZ = camState.dragStartOffset.z + dyCss * 3.0;
+            }
+
+            const bounded = clampOffsetInFrontOfCamera(
+              camState.pose,
+              nextX,
+              nextZ
+            );
+            camState.offsetX = bounded.x;
+            camState.offsetZ = bounded.z;
+            updateCameraScene();
+          }
+        });
+
+        function finishCamPointer(e) {
+          if (!camState.dragTarget || e.pointerId !== camState.activePointerId)
+            return;
+          if (arUiCanvas.hasPointerCapture(e.pointerId)) {
+            arUiCanvas.releasePointerCapture(e.pointerId);
+          }
+          camState.dragTarget = null;
+          camState.activePointerId = null;
+          camState.dragStartFloor = null;
+          camState.dragStartCss = null;
+          hideMagnifier();
+        }
+
+        arUiCanvas.addEventListener('pointerup', finishCamPointer);
+        arUiCanvas.addEventListener('pointercancel', finishCamPointer);
+
+        // =====================================================================
+        // 10. UI Event Bindings
+        // =====================================================================
+        openCameraArBtn.addEventListener('click', openCameraArView);
+        camCloseBtn.addEventListener('click', closeCameraArView);
+        camFloatingResetBtn.addEventListener('click', resetCameraPlacement);
+
+        camFreezeBtn.addEventListener('click', function () {
+          if (camState.bgImage) {
+            camState.bgImage = null;
+            camState.isFrozen = false;
+            camFreezeBtn.textContent = '定格画面';
+            camFreezeBtn.classList.remove('is-active');
+            if (!camState.stream) openCameraArView();
+            return;
+          }
+          camState.isFrozen = !camState.isFrozen;
+          camFreezeBtn.textContent = camState.isFrozen ? '恢复实时' : '定格画面';
+          camFreezeBtn.classList.toggle('is-active', camState.isFrozen);
+        });
+
+        camUploadBgBtn.addEventListener('click', function () {
+          bgPhotoInput.value = '';
+          bgPhotoInput.click();
+        });
+
+        camFallbackUploadBtn.addEventListener('click', function () {
+          bgPhotoInput.value = '';
+          bgPhotoInput.click();
+        });
+
+        camUseSampleBgBtn.addEventListener('click', generateSampleGalleryFloorPhoto);
+
+        bgPhotoInput.addEventListener('change', function (e) {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function (evt) {
+            const img = new Image();
+            img.onload = function () {
+              camState.bgImage = img;
+              camState.isFrozen = true;
+              camFallbackCard.classList.remove('is-visible');
+              camFreezeBtn.textContent = '切回相机';
+              camFreezeBtn.classList.add('is-active');
+              drawCameraBgSource(img);
+              updateCameraScene();
+            };
+            img.src = evt.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+
+        function syncQuadDimensionInputs() {
+          const qw = parseFloat(quadWidthInput.value);
+          const qd = parseFloat(quadDepthInput.value);
+          camState.quadWidthM = Number.isFinite(qw) && qw > 0.05 ? qw : 1.0;
+          camState.quadDepthM = Number.isFinite(qd) && qd > 0.05 ? qd : 1.0;
+          camPresets.forEach((btn) => {
+            const bw = parseFloat(btn.dataset.qw);
+            const bd = parseFloat(btn.dataset.qd);
+            btn.classList.toggle(
+              'is-active',
+              Math.abs(bw - camState.quadWidthM) < 0.01 &&
+                Math.abs(bd - camState.quadDepthM) < 0.01
+            );
+          });
+          updateCameraScene();
+        }
+
+        quadWidthInput.addEventListener('input', syncQuadDimensionInputs);
+        quadDepthInput.addEventListener('input', syncQuadDimensionInputs);
+
+        camPresets.forEach((btn) => {
           btn.addEventListener('click', function () {
-            realLengthInput.value = btn.dataset.meters;
-            syncPresetActiveState();
-            renderCanvas();
-            updateMetricsAndUI('immediate');
+            quadWidthInput.value = btn.dataset.qw;
+            quadDepthInput.value = btn.dataset.qd;
+            syncQuadDimensionInputs();
           });
         });
 
-        function triggerARSession() {
-          const dims = getPhysicalDimensions();
-          if (!dims) return;
-
-          if (!state.gltfDataUri) {
-            syncModelViewerAsset(dims);
-          }
-
-          if (
-            arModelViewer.canActivateAR &&
-            typeof arModelViewer.activateAR === 'function'
-          ) {
-            try {
-              arModelViewer.activateAR();
-            } catch (_) {
-              open3dModal();
-            }
-          } else {
-            open3dModal();
-          }
-        }
-
-        function open3dModal() {
-          const dims = getPhysicalDimensions();
-          if (!dims) return;
-          if (!state.gltfDataUri) {
-            syncModelViewerAsset(dims);
-          }
-          mvHost.classList.add('is-modal-open');
-          mvHost.setAttribute('aria-hidden', 'false');
-          mvModalArBtn.style.display = arModelViewer.canActivateAR
-            ? 'inline-flex'
-            : 'none';
-        }
-
-        function close3dModal() {
-          mvHost.classList.remove('is-modal-open');
-          mvHost.setAttribute('aria-hidden', 'true');
-        }
-
-        viewArBtn.addEventListener('click', triggerARSession);
-        preview3dBtn.addEventListener('click', open3dModal);
-        mvModalArBtn.addEventListener('click', function () {
-          if (arModelViewer.canActivateAR) {
-            arModelViewer.activateAR();
-          }
-        });
-        mvCloseBtn.addEventListener('click', close3dModal);
-        mvHost.addEventListener('click', function (e) {
-          if (e.target === mvHost) {
-            close3dModal();
-          }
+        camHeadingSlider.addEventListener('input', function () {
+          camState.headingDeg = parseFloat(camHeadingSlider.value) || 0;
+          camHeadingVal.textContent = camState.headingDeg + '°';
+          updateCameraScene();
         });
 
-        downloadGltfBtn.addEventListener('click', function () {
-          const dims = getPhysicalDimensions();
-          if (!state.gltfDataUri || !dims) return;
+        camToggleGuidesBtn.addEventListener('click', function () {
+          camState.showGuides = !camState.showGuides;
+          camToggleGuidesBtn.classList.toggle('is-active', camState.showGuides);
+          renderCameraUiOverlay();
+        });
+
+        camSnapshotBtn.addEventListener('click', function () {
+          const out = document.createElement('canvas');
+          out.width = arBgCanvas.width;
+          out.height = arBgCanvas.height;
+          const octx = out.getContext('2d');
+          octx.drawImage(arBgCanvas, 0, 0);
+          octx.drawImage(arWebglCanvas, 0, 0);
+
+          octx.fillStyle = 'rgba(17, 17, 17, 0.78)';
+          const pad = 20;
+          octx.fillRect(pad, out.height - 54, 420, 36);
+          octx.fillStyle = '#FFFFFF';
+          octx.font = '600 16px monospace';
+          octx.textBaseline = 'middle';
+          octx.fillText(
+            `AR 1:1  ${state.realWidthMeters.toFixed(2)}m × ${state.realHeightMeters.toFixed(2)}m`,
+            pad + 14,
+            out.height - 36
+          );
+
           const a = document.createElement('a');
-          a.href = state.gltfDataUri;
-          a.download = `scale-billboard-${dims.realWidth.toFixed(2)}x${dims.realHeight.toFixed(2)}m.gltf`;
+          a.href = out.toDataURL('image/png');
+          a.download = `ar-scale-1to1-${state.realWidthMeters.toFixed(2)}x${state.realHeightMeters.toFixed(2)}m.png`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
         });
 
-        window.addEventListener('resize', resizeCanvas);
-        if (window.ResizeObserver) {
-          const ro = new ResizeObserver(resizeCanvas);
-          ro.observe(workspaceArea);
+        // Main Workspace Bindings
+        uploadTriggerBtn.addEventListener('click', function () {
+          imageInput.value = '';
+          imageInput.click();
+        });
+
+        replaceImageBtn.addEventListener('click', function () {
+          imageInput.value = '';
+          imageInput.click();
+        });
+
+        imageInput.addEventListener('change', function (e) {
+          if (e.target.files && e.target.files[0]) {
+            handleImageFile(e.target.files[0]);
+          }
+        });
+
+        loadSampleBtn.addEventListener('click', generateSampleExhibitionRender);
+        loadPerspSampleBtn.addEventListener('click', generatePerspectiveSampleRender);
+
+        canvasStage.addEventListener('dragover', function (e) {
+          e.preventDefault();
+          uploadDropzone.classList.add('is-dragover');
+        });
+
+        canvasStage.addEventListener('dragleave', function () {
+          uploadDropzone.classList.remove('is-dragover');
+        });
+
+        canvasStage.addEventListener('drop', function (e) {
+          e.preventDefault();
+          uploadDropzone.classList.remove('is-dragover');
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleImageFile(e.dataTransfer.files[0]);
+          }
+        });
+
+        togglePerspLineBtn.addEventListener('click', function () {
+          if (state.activeDrawTarget === 'persp') {
+            state.activeDrawTarget = 'primary';
+            togglePerspLineBtn.classList.remove('is-blue-active');
+            canvasInstruction.classList.add('is-hidden');
+          } else {
+            state.activeDrawTarget = 'persp';
+            togglePerspLineBtn.classList.add('is-blue-active');
+            canvasInstruction.textContent =
+              '在图上拖动标出与 A–B 实际等高的第二个物体 (C–D)';
+            canvasInstruction.classList.remove('is-hidden');
+          }
+        });
+
+        clearLineBtn.addEventListener('click', function () {
+          state.line.a = null;
+          state.line.b = null;
+          state.perspLine.c = null;
+          state.perspLine.d = null;
+          state.activeDrawTarget = 'primary';
+          state.perspectiveInfo = null;
+          state.gltfDataUri = '';
+          state.gltfDirty = false;
+          state.modelLoaded = false;
+
+          togglePerspLineBtn.classList.remove('is-blue-active');
+          togglePerspLineBtn.textContent = '+ 等高线 C–D';
+          rectifyWrap.hidden = true;
+
+          if (state.image) {
+            canvasInstruction.textContent = '在画面上按住拖动绘制参考线 A–B';
+            canvasInstruction.classList.remove('is-hidden');
+          }
+          drawMainCanvas();
+          recalculateScaleAndModel(false);
+        });
+
+        let inputDebounceTimer = null;
+        realLengthInput.addEventListener('input', function () {
+          state.gltfDirty = true;
+          recalculateScaleAndModel(false);
+          drawMainCanvas();
+          clearTimeout(inputDebounceTimer);
+          inputDebounceTimer = setTimeout(function () {
+            recalculateScaleAndModel(true);
+          }, 160);
+        });
+
+        realLengthInput.addEventListener('change', function () {
+          clearTimeout(inputDebounceTimer);
+          recalculateScaleAndModel(true);
+        });
+
+        rectifyPerspChk.addEventListener('change', function () {
+          state.rectifyPerspective = rectifyPerspChk.checked;
+          state.gltfDirty = true;
+          recalculateScaleAndModel(true);
+        });
+
+        includeScaleGuidesChk.addEventListener('change', function () {
+          state.includeScaleGuides = includeScaleGuidesChk.checked;
+          state.gltfDirty = true;
+          recalculateScaleAndModel(true);
+        });
+
+        placementButtons.forEach((btn) => {
+          btn.addEventListener('click', function () {
+            state.arPlacement = btn.dataset.placement;
+            placementButtons.forEach((b) =>
+              b.classList.toggle('is-active', b === btn)
+            );
+            modelViewer.setAttribute('ar-placement', state.arPlacement);
+            state.gltfDirty = true;
+            recalculateScaleAndModel(true);
+          });
+        });
+
+        function resetModelViewerCamera() {
+          modelViewer.cameraOrbit = '0deg 75deg auto';
+          modelViewer.cameraTarget = 'auto auto auto';
+          modelViewer.fieldOfView = 'auto';
+          if (typeof modelViewer.jumpCameraToGoal === 'function') {
+            modelViewer.jumpCameraToGoal();
+          }
         }
 
-        resizeCanvas();
-        updateMetricsAndUI('none');
+        function open3dPreviewModal() {
+          if (state.gltfDirty || !state.gltfDataUri) {
+            clearTimeout(inputDebounceTimer);
+            recalculateScaleAndModel(true);
+          }
+          updateModalArButtonState();
+          arViewerShell.classList.add('is-modal-open');
+        }
+
+        function close3dPreviewModal() {
+          arViewerShell.classList.remove('is-modal-open');
+        }
+
+        reset3dCameraBtn.addEventListener('click', resetModelViewerCamera);
+        closeModalBtn.addEventListener('click', close3dPreviewModal);
+        arViewerShell.addEventListener('click', function (e) {
+          if (e.target === arViewerShell) close3dPreviewModal();
+        });
+
+        viewInQuickLookBtn.addEventListener('click', function () {
+          if (state.gltfDirty || !state.gltfDataUri) {
+            clearTimeout(inputDebounceTimer);
+            recalculateScaleAndModel(true);
+          }
+          if (modelViewer.canActivateAR) {
+            try {
+              modelViewer.activateAR();
+            } catch (_) {
+              open3dPreviewModal();
+            }
+          } else {
+            open3dPreviewModal();
+          }
+        });
+
+        modalActivateArBtn.addEventListener('click', function () {
+          if (modelViewer.canActivateAR) {
+            modelViewer.activateAR();
+          }
+        });
+
+        downloadGltfBtn.addEventListener('click', function () {
+          if (!state.gltfDataUri) return;
+          const a = document.createElement('a');
+          a.href = state.gltfDataUri;
+          a.download = `scale-billboard-${state.realWidthMeters.toFixed(2)}x${state.realHeightMeters.toFixed(2)}m.gltf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+
+        if (typeof ResizeObserver !== 'undefined') {
+          const ro = new ResizeObserver(function () {
+            resizeCanvasAndDraw();
+            resizeCameraCanvases();
+          });
+          ro.observe(canvasStage);
+          ro.observe(camStage);
+        } else {
+          window.addEventListener('resize', function () {
+            resizeCanvasAndDraw();
+            resizeCameraCanvases();
+          });
+        }
+
+        resizeCanvasAndDraw();
       })();
     </script>
   </body>
