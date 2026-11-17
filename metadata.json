@@ -1,0 +1,6 @@
+{
+  "name": "尺度原型 · AR 1:1 校准仪",
+  "description": "面向策展设计师与新媒体艺术家的移动端 AR 1:1 实景尺度校准工具，支持苹果 AR Quick Look 与 WebXR。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
