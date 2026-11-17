@@ -73,6 +73,10 @@
         -webkit-tap-highlight-color: transparent;
       }
 
+      [hidden] {
+        display: none !important;
+      }
+
       html,
       body {
         margin: 0;
@@ -881,11 +885,14 @@
       }
 
       .cam-controls-dock {
-        flex-shrink: 0;
-        background: rgba(17, 17, 17, 0.94);
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(17, 17, 17, 0.9);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
         padding: 10px 12px calc(10px + var(--safe-bottom));
         display: flex;
         flex-direction: column;
@@ -898,10 +905,6 @@
         flex-direction: column;
         gap: 8px;
         width: 100%;
-      }
-
-      .cam-subpanel[hidden] {
-        display: none;
       }
 
       .cam-row {
@@ -1769,6 +1772,8 @@
         const camFreezeBtn = document.getElementById('camFreezeBtn');
         const camUploadBgBtn = document.getElementById('camUploadBgBtn');
         const camBannerHint = document.getElementById('camBannerHint');
+        const camFloatingActions = document.querySelector('.cam-floating-actions');
+        const camControlsDock = document.querySelector('.cam-controls-dock');
         const camZoomToggleBtn = document.getElementById('camZoomToggleBtn');
         const camFloatingResetBtn = document.getElementById('camFloatingResetBtn');
         const camFallbackCard = document.getElementById('camFallbackCard');
@@ -3405,10 +3410,10 @@
 
           // Step 1: 3-Axis Orthogonal Corner Triad (O origin + X, Y, Z endpoints)
           triad: {
-            oNorm: { x: 0.34, y: 0.72 },
-            yNorm: { x: 0.34, y: 0.28 },
-            xNorm: { x: 0.62, y: 0.72 },
-            zNorm: { x: 0.2, y: 0.85 },
+            oNorm: { x: 0.36, y: 0.56 },
+            yNorm: { x: 0.36, y: 0.22 },
+            xNorm: { x: 0.62, y: 0.56 },
+            zNorm: { x: 0.22, y: 0.66 },
           },
           refRealHeightM: 2.1,
           lensFactor: 0.88,
@@ -3473,11 +3478,21 @@
             [0, 1, 0],
             [0, 0, 1],
           ],
+          smoothedR: [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+          ],
+          gyroBiasR: [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+          ],
           lastGoodGyro: null,
           prevGray: null,
           lastKeyframeTime: 0,
           isOnHomeKeyframe: true,
-          trackMode: 'home', // 'home' | 'handover' | 'inertial'
+          trackMode: 'home', // 'imu' | 'imu-vis' | 'home' | 'handover' | 'inertial'
           avgShift: { dx: 0, dy: 0 },
           matchedCount: 0,
           confidence: 0,
@@ -3493,6 +3508,36 @@
             [0, 1, 0],
             [0, 0, 1],
           ];
+        }
+
+        function transposeMat3(M) {
+          return [
+            [M[0][0], M[1][0], M[2][0]],
+            [M[0][1], M[1][1], M[2][1]],
+            [M[0][2], M[1][2], M[2][2]],
+          ];
+        }
+
+        function rotationAngleBetween(A, B) {
+          const d = mat3Mul(transposeMat3(A), B);
+          const tr = Math.max(-1, Math.min(3, d[0][0] + d[1][1] + d[2][2]));
+          return Math.acos(Math.max(-1, Math.min(1, (tr - 1) * 0.5)));
+        }
+
+        function blendRotationMatrices(R_prev, R_target, minAlpha, maxAlpha, deadbandRad) {
+          if (!R_prev) return cloneMat3(R_target);
+          const dR = mat3Mul(transposeMat3(R_prev), R_target);
+          const w = [
+            (dR[2][1] - dR[1][2]) * 0.5,
+            (dR[0][2] - dR[2][0]) * 0.5,
+            (dR[1][0] - dR[0][1]) * 0.5,
+          ];
+          const sinAng = norm(w);
+          if (sinAng < (deadbandRad || 0.0014)) {
+            return R_prev;
+          }
+          const alpha = sinAng > 0.03 ? maxAlpha : minAlpha;
+          return orthonormalizeMat3(mat3Mul(R_prev, rodriguesMat(scaleVec(w, alpha))));
         }
 
         function captureTrackingGrayFrame() {
@@ -3523,8 +3568,8 @@
         }
 
         function extractNormalizedPatch(gray, W, H, cx, cy) {
-          const R = 4;
-          const size = 81;
+          const R = 5;
+          const size = 121;
           const raw = new Float32Array(size);
           let sum = 0;
           let idx = 0;
@@ -3543,10 +3588,10 @@
             sq += raw[i] * raw[i];
           }
           const denom = Math.sqrt(sq);
-          if (denom < 65) return null;
+          if (denom < 110) return null;
           for (let i = 0; i < size; i++) raw[i] /= denom;
 
-          const cPatch = new Float32Array(25);
+          const cPatch = new Float32Array(36);
           let cSum = 0;
           let cIdx = 0;
           for (let dy = -R; dy <= R; dy += 2) {
@@ -3556,21 +3601,21 @@
               cSum += v;
             }
           }
-          const cMean = cSum / 25;
+          const cMean = cSum / 36;
           let cSq = 0;
-          for (let i = 0; i < 25; i++) {
+          for (let i = 0; i < 36; i++) {
             cPatch[i] -= cMean;
             cSq += cPatch[i] * cPatch[i];
           }
           const cDenom = Math.sqrt(cSq);
-          if (cDenom < 30) return null;
-          for (let i = 0; i < 25; i++) cPatch[i] /= cDenom;
+          if (cDenom < 50) return null;
+          for (let i = 0; i < 36; i++) cPatch[i] /= cDenom;
 
           return { patch: raw, cPatch };
         }
 
         function buildCornerAnchorsFromGray(gray, W, H) {
-          const margin = 10;
+          const margin = 12;
           const buckets = Array.from({ length: 12 }, () => []);
           for (let y = margin; y < H - margin; y += 3) {
             for (let x = margin; x < W - margin; x += 3) {
@@ -3583,7 +3628,7 @@
                 gray[(y + 2) * W + (x - 2)] - gray[(y - 2) * W + (x + 2)]
               );
               const score = Math.min(gx, gy) + 0.5 * Math.min(gd1, gd2);
-              if (score < 12) continue;
+              if (score < 20) continue;
               const bx = Math.min(3, Math.floor((x / W) * 4));
               const by = Math.min(2, Math.floor((y / H) * 3));
               buckets[by * 4 + bx].push({ x, y, score });
@@ -3604,7 +3649,7 @@
             const c = candidates[i];
             let tooClose = false;
             for (let j = 0; j < chosen.length; j++) {
-              if (Math.hypot(c.x - chosen[j].rx, c.y - chosen[j].ry) < 16) {
+              if (Math.hypot(c.x - chosen[j].rx, c.y - chosen[j].ry) < 18) {
                 tooClose = true;
                 break;
               }
@@ -3643,11 +3688,13 @@
           visualTracker.keyframeGyro = homeGyro;
           visualTracker.lastR = identityMat3();
           visualTracker.lastGoodR = identityMat3();
+          visualTracker.smoothedR = identityMat3();
+          visualTracker.gyroBiasR = identityMat3();
           visualTracker.lastGoodGyro = homeGyro;
           visualTracker.prevGray = gray;
           visualTracker.lastKeyframeTime = performance.now();
           visualTracker.isOnHomeKeyframe = true;
-          visualTracker.trackMode = 'home';
+          visualTracker.trackMode = gyroState.hasReading ? 'imu' : 'home';
           visualTracker.avgShift = { dx: 0, dy: 0 };
           visualTracker.matchedCount = chosen.length;
           visualTracker.confidence = chosen.length >= 4 ? 1 : 0;
@@ -3666,11 +3713,12 @@
           visualTracker.keyframeGyro = curGyro;
           visualTracker.lastR = identityMat3();
           visualTracker.lastGoodR = curR;
+          visualTracker.smoothedR = curR;
           visualTracker.lastGoodGyro = curGyro;
           visualTracker.prevGray = gray;
           visualTracker.lastKeyframeTime = performance.now();
           visualTracker.isOnHomeKeyframe = false;
-          visualTracker.trackMode = 'handover';
+          visualTracker.trackMode = gyroState.hasReading ? 'imu' : 'handover';
           visualTracker.avgShift = { dx: 0, dy: 0 };
           visualTracker.matchedCount = chosen.length;
         }
@@ -3680,17 +3728,17 @@
           let sumQ2 = 0;
           let dotPQ = 0;
           let k = 0;
-          for (let dy = -4; dy <= 4; dy += 2) {
+          for (let dy = -5; dy <= 5; dy += 2) {
             const row = (cy + dy) * W;
-            for (let dx = -4; dx <= 4; dx += 2) {
+            for (let dx = -5; dx <= 5; dx += 2) {
               const q = gray[row + cx + dx];
               sumQ += q;
               sumQ2 += q * q;
               dotPQ += cPatch[k++] * q;
             }
           }
-          const varQ = sumQ2 - (sumQ * sumQ) / 25;
-          if (varQ < 450) return -1;
+          const varQ = sumQ2 - (sumQ * sumQ) / 36;
+          if (varQ < 700) return -1;
           return dotPQ / Math.sqrt(varQ);
         }
 
@@ -3699,17 +3747,17 @@
           let sumQ2 = 0;
           let dotPQ = 0;
           let k = 0;
-          for (let dy = -4; dy <= 4; dy++) {
+          for (let dy = -5; dy <= 5; dy++) {
             const row = (cy + dy) * W;
-            for (let dx = -4; dx <= 4; dx++) {
+            for (let dx = -5; dx <= 5; dx++) {
               const q = gray[row + cx + dx];
               sumQ += q;
               sumQ2 += q * q;
               dotPQ += patch[k++] * q;
             }
           }
-          const varQ = sumQ2 - (sumQ * sumQ) / 81;
-          if (varQ < 1600) return -1;
+          const varQ = sumQ2 - (sumQ * sumQ) / 121;
+          if (varQ < 2500) return -1;
           return dotPQ / Math.sqrt(varQ);
         }
 
@@ -3765,6 +3813,7 @@
         function solveSO3FromRayPairs(pairs, initR) {
           let R = cloneMat3(initR) || identityMat3();
           let avgErr = 0;
+          let inlierCount = 0;
           for (let iter = 0; iter < 8; iter++) {
             const g = [0, 0, 0];
             const Hmat = [
@@ -3773,13 +3822,15 @@
               [0, 0, 0.004],
             ];
             let errSum = 0;
+            inlierCount = 0;
             for (let i = 0; i < pairs.length; i++) {
               const q = mat3MulVec(R, pairs[i].u);
               const e = subVec(q, pairs[i].v);
               const errNorm = norm(e);
               errSum += errNorm;
+              if (errNorm < 0.016) inlierCount++;
               const wi =
-                pairs[i].w * (iter >= 3 ? 1 / (1 + (errNorm / 0.022) ** 2) : 1);
+                pairs[i].w * (iter >= 3 ? 1 / (1 + (errNorm / 0.016) ** 2) : 1);
               const cr = cross(q, e);
               g[0] += wi * cr[0];
               g[1] += wi * cr[1];
@@ -3795,11 +3846,11 @@
             if (!dw || norm(dw) < 1e-6) break;
             R = orthonormalizeMat3(mat3Mul(rodriguesMat(dw), R));
           }
-          return { R, avgErr };
+          return { R, avgErr, inlierCount };
         }
 
-        function matchAnchorList(anchorList, gray, W, H, anchorPose, predR, searchRad, useLastPos) {
-          const pad = 6;
+        function matchAnchorList(anchorList, gray, W, H, anchorPose, predR, searchRad, minFineScore, useLastPos) {
+          const pad = 7;
           const matched = [];
           for (let i = 0; i < anchorList.length; i++) {
             const anc = anchorList[i];
@@ -3820,13 +3871,8 @@
                 const pyCss = anchorPose.cy + (anchorPose.f * uPred[1]) / uPred[2];
                 const gx = (pxCss / camState.cssW) * W;
                 const gy = (pyCss / camState.cssH) * H;
-                if (!useLastPos || visualTracker.matchedCount < 3) {
-                  predX = gx;
-                  predY = gy;
-                } else {
-                  predX = 0.55 * anc.lastX + 0.45 * gx;
-                  predY = 0.55 * anc.lastY + 0.45 * gy;
-                }
+                predX = gx;
+                predY = gy;
               }
             }
 
@@ -3852,7 +3898,7 @@
                 }
               }
             }
-            if (bestScore < 0.5) continue;
+            if (bestScore < 0.6) continue;
 
             let fineBest = -1;
             let fx = bestX;
@@ -3872,7 +3918,7 @@
               }
             }
 
-            if (fineBest >= 0.7) {
+            if (fineBest >= minFineScore) {
               let subX = fx;
               let subY = fy;
               if (fx > pad && fx < W - pad - 1) {
@@ -3899,64 +3945,6 @@
           return matched;
         }
 
-        function estimateInterframeRotation(prevGray, currGray, W, H, anchorPose) {
-          if (!prevGray) return null;
-          const cols = [0.22, 0.4, 0.6, 0.78];
-          const rows = [0.25, 0.5, 0.75];
-          const pairs = [];
-          const pad = 8;
-          const rad = 32;
-
-          for (let r = 0; r < rows.length; r++) {
-            for (let c = 0; c < cols.length; c++) {
-              const cx = Math.round(cols[c] * W);
-              const cy = Math.round(rows[r] * H);
-              const pData = extractNormalizedPatch(prevGray, W, H, cx, cy);
-              if (!pData) continue;
-
-              let bestS = -1;
-              let bx = cx;
-              let by = cy;
-              const minX = Math.max(pad, cx - rad);
-              const maxX = Math.min(W - pad - 1, cx + rad);
-              const minY = Math.max(pad, cy - rad);
-              const maxY = Math.min(H - pad - 1, cy + rad);
-              for (let y = minY; y <= maxY; y += 2) {
-                for (let x = minX; x <= maxX; x += 2) {
-                  const s = nccCoarse(currGray, W, x, y, pData.cPatch);
-                  if (s > bestS) {
-                    bestS = s;
-                    bx = x;
-                    by = y;
-                  }
-                }
-              }
-              if (bestS < 0.62) continue;
-
-              const rxCss = (cx / W) * camState.cssW;
-              const ryCss = (cy / H) * camState.cssH;
-              const nxCss = (bx / W) * camState.cssW;
-              const nyCss = (by / H) * camState.cssH;
-              pairs.push({
-                u: normalize([
-                  (rxCss - anchorPose.cx) / anchorPose.f,
-                  (ryCss - anchorPose.cy) / anchorPose.f,
-                  1,
-                ]),
-                v: normalize([
-                  (nxCss - anchorPose.cx) / anchorPose.f,
-                  (nyCss - anchorPose.cy) / anchorPose.f,
-                  1,
-                ]),
-                w: bestS,
-              });
-            }
-          }
-          if (pairs.length < 3) return null;
-          const res = solveSO3FromRayPairs(pairs, identityMat3());
-          return res.avgErr < 0.05 ? res.R : null;
-        }
-
         function matchedPairsToRays(matched, W, H, anchorPose) {
           return matched.map((m) => {
             const rxCss = m.anc.rxNorm * camState.cssW;
@@ -3981,24 +3969,94 @@
 
         function trackVisualFrame(anchorPose) {
           if (!anchorPose) return null;
+
+          // =================================================================
+          // Case 1: Hardware CoreMotion / IMU Gyro Active (iPhone / Android)
+          // Primary = smooth hardware IMU orientation; visual anchors ONLY trim
+          // small drift (<= 2.5 deg) when >= 6 features strictly agree!
+          // =================================================================
+          const refGyro =
+            camState.frozenSnapshotGyro || gyroState.anchorEarthFromCam;
+          if (gyroState.hasReading && gyroState.currentEarthFromCam && refGyro) {
+            const R_gyro = computeRelativeGyroMatrix(
+              gyroState.currentEarthFromCam,
+              refGyro
+            );
+            const gray = captureTrackingGrayFrame();
+            const W = visualTracker.W;
+            const H = visualTracker.H;
+
+            let R_target = mat3Mul(R_gyro, visualTracker.gyroBiasR);
+            let mode = 'imu';
+            let visCount = 0;
+            visualTracker.matchedPoints = [];
+
+            if (visualTracker.homeAnchors.length >= 6) {
+              const homeMatches = matchAnchorList(
+                visualTracker.homeAnchors,
+                gray,
+                W,
+                H,
+                anchorPose,
+                R_target,
+                10,
+                0.84,
+                false
+              );
+              visCount = homeMatches.length;
+              if (homeMatches.length >= 6) {
+                const pairs = matchedPairsToRays(homeMatches, W, H, anchorPose);
+                const solved = solveSO3FromRayPairs(pairs, R_target);
+                const jumpAng = rotationAngleBetween(R_gyro, solved.R);
+                if (
+                  solved.inlierCount >= 6 &&
+                  solved.avgErr < 0.011 &&
+                  jumpAng < 0.045
+                ) {
+                  // Gently update small bounded visual drift trim (never exceeds 2.5 deg)
+                  const newBias = mat3Mul(transposeMat3(R_gyro), solved.R);
+                  visualTracker.gyroBiasR = blendRotationMatrices(
+                    visualTracker.gyroBiasR,
+                    newBias,
+                    0.12,
+                    0.2,
+                    0.0008
+                  );
+                  R_target = orthonormalizeMat3(
+                    mat3Mul(R_gyro, visualTracker.gyroBiasR)
+                  );
+                  mode = 'imu-vis';
+                  visualTracker.matchedPoints = homeMatches.map((m) => ({
+                    x: (m.xTrk / W) * camState.cssW,
+                    y: (m.yTrk / H) * camState.cssH,
+                  }));
+                }
+              }
+            }
+
+            const R_smooth = blendRotationMatrices(
+              visualTracker.smoothedR,
+              R_target,
+              0.38,
+              0.88,
+              0.0014
+            );
+            visualTracker.smoothedR = R_smooth;
+            visualTracker.lastGoodR = R_smooth;
+            visualTracker.matchedCount = visCount;
+            visualTracker.trackMode = mode;
+            visualTracker.prevGray = gray;
+            return { R: R_smooth, matchedCount: visCount, mode };
+          }
+
+          // =================================================================
+          // Case 2: No Gyro Available (Desktop Webcam / Blocked Iframe)
+          // Strict 11x11 NCC + RANSAC inlier consensus + jump rejection + deadband
+          // =================================================================
           const gray = captureTrackingGrayFrame();
           const W = visualTracker.W;
           const H = visualTracker.H;
 
-          let gyroRelFromKf = null;
-          if (
-            gyroState.hasReading &&
-            gyroState.currentEarthFromCam &&
-            visualTracker.keyframeGyro
-          ) {
-            gyroRelFromKf = computeRelativeGyroMatrix(
-              gyroState.currentEarthFromCam,
-              visualTracker.keyframeGyro
-            );
-          }
-
-          const predR = gyroRelFromKf || visualTracker.lastR;
-          const searchRad = visualTracker.matchedCount >= 3 ? 20 : 30;
           const matched = visualTracker.anchors.length
             ? matchAnchorList(
                 visualTracker.anchors,
@@ -4006,8 +4064,9 @@
                 W,
                 H,
                 anchorPose,
-                predR,
-                searchRad,
+                visualTracker.lastR,
+                14,
+                0.81,
                 true
               )
             : [];
@@ -4020,170 +4079,138 @@
 
           const now = performance.now();
 
-          if (matched.length >= 3) {
-            let sumDx = 0;
-            let sumDy = 0;
-            let offCenterSum = 0;
-            matched.forEach((m) => {
-              sumDx += m.xTrk - m.anc.rx;
-              sumDy += m.yTrk - m.anc.ry;
-              offCenterSum += Math.hypot(
-                m.xTrk / W - 0.5,
-                m.yTrk / H - 0.5
-              );
-            });
-            visualTracker.avgShift = {
-              dx: sumDx / matched.length,
-              dy: sumDy / matched.length,
-            };
-            const meanOffCenter = offCenterSum / matched.length;
-
+          if (matched.length >= 5) {
             const pairs = matchedPairsToRays(matched, W, H, anchorPose);
             const solved = solveSO3FromRayPairs(pairs, visualTracker.lastR);
-            const R_currFromHome = orthonormalizeMat3(
-              mat3Mul(solved.R, visualTracker.keyframeWorldR)
-            );
+            const inlierRatio = solved.inlierCount / matched.length;
 
-            visualTracker.lastR = solved.R;
-            visualTracker.lastGoodR = R_currFromHome;
-            if (gyroState.hasReading && gyroState.currentEarthFromCam) {
-              visualTracker.lastGoodGyro = cloneMat3(gyroState.currentEarthFromCam);
-            }
-
-            // Loop Closure: if we panned back to the original XYZ anchor object, snap cleanly home!
-            if (
-              !visualTracker.isOnHomeKeyframe &&
-              visualTracker.homeAnchors.length >= 4 &&
-              now - visualTracker.lastKeyframeTime > 400
-            ) {
-              const homeMatches = matchAnchorList(
-                visualTracker.homeAnchors,
-                gray,
-                W,
-                H,
-                anchorPose,
-                R_currFromHome,
-                18,
-                false
+            if (solved.inlierCount >= 5 && inlierRatio >= 0.55 && solved.avgErr < 0.022) {
+              const R_currFromHome = orthonormalizeMat3(
+                mat3Mul(solved.R, visualTracker.keyframeWorldR)
               );
-              if (homeMatches.length >= 5) {
-                const hPairs = matchedPairsToRays(homeMatches, W, H, anchorPose);
-                const hSolved = solveSO3FromRayPairs(hPairs, R_currFromHome);
-                if (hSolved.avgErr < 0.024) {
-                  visualTracker.anchors = visualTracker.homeAnchors.map((a) => ({
-                    ...a,
-                  }));
-                  visualTracker.keyframeWorldR = identityMat3();
-                  visualTracker.keyframeGyro =
-                    cloneMat3(camState.frozenSnapshotGyro) ||
-                    cloneMat3(gyroState.anchorEarthFromCam);
-                  visualTracker.lastR = hSolved.R;
-                  visualTracker.lastGoodR = hSolved.R;
-                  visualTracker.isOnHomeKeyframe = true;
-                  visualTracker.trackMode = 'home';
-                  visualTracker.lastKeyframeTime = now;
-                  visualTracker.matchedCount = homeMatches.length;
-                  visualTracker.matchedPoints = homeMatches.map((m) => ({
-                    x: (m.xTrk / W) * camState.cssW,
-                    y: (m.yTrk / H) * camState.cssH,
-                  }));
-                  visualTracker.prevGray = gray;
-                  return {
-                    R: hSolved.R,
-                    matchedCount: homeMatches.length,
-                    mode: 'home',
-                  };
-                }
-              }
-            }
+              const frameJump = rotationAngleBetween(
+                visualTracker.lastGoodR,
+                R_currFromHome
+              );
 
-            // Panoramic Keyframe Handover: promote current view before door/XYZ anchors leave screen!
-            const needHandover =
-              matched.length <= 6 ||
-              meanOffCenter > 0.31 ||
-              Math.hypot(
-                visualTracker.avgShift.dx / W,
-                visualTracker.avgShift.dy / H
-              ) > 0.24;
-
-            if (
-              needHandover &&
-              matched.length >= 4 &&
-              solved.avgErr < 0.032 &&
-              now - visualTracker.lastKeyframeTime > 260
-            ) {
-              const nextAnchors = buildCornerAnchorsFromGray(gray, W, H);
-              if (nextAnchors.length >= 6) {
-                visualTracker.anchors = nextAnchors;
-                visualTracker.keyframeWorldR = R_currFromHome;
-                visualTracker.keyframeGyro = cloneMat3(
-                  gyroState.currentEarthFromCam
+              if (frameJump < 0.12) {
+                visualTracker.lastR = solved.R;
+                visualTracker.lastGoodR = R_currFromHome;
+                const R_smooth = blendRotationMatrices(
+                  visualTracker.smoothedR,
+                  R_currFromHome,
+                  0.32,
+                  0.72,
+                  0.0022
                 );
-                visualTracker.lastR = identityMat3();
-                visualTracker.isOnHomeKeyframe = false;
-                visualTracker.trackMode = 'handover';
-                visualTracker.lastKeyframeTime = now;
-                visualTracker.avgShift = { dx: 0, dy: 0 };
+                visualTracker.smoothedR = R_smooth;
+
+                let sumDx = 0;
+                let sumDy = 0;
+                let offCenterSum = 0;
+                matched.forEach((m) => {
+                  sumDx += m.xTrk - m.anc.rx;
+                  sumDy += m.yTrk - m.anc.ry;
+                  offCenterSum += Math.hypot(m.xTrk / W - 0.5, m.yTrk / H - 0.5);
+                });
+                visualTracker.avgShift = {
+                  dx: sumDx / matched.length,
+                  dy: sumDy / matched.length,
+                };
+                const meanOffCenter = offCenterSum / matched.length;
+
+                if (
+                  !visualTracker.isOnHomeKeyframe &&
+                  visualTracker.homeAnchors.length >= 6 &&
+                  now - visualTracker.lastKeyframeTime > 450
+                ) {
+                  const homeMatches = matchAnchorList(
+                    visualTracker.homeAnchors,
+                    gray,
+                    W,
+                    H,
+                    anchorPose,
+                    R_currFromHome,
+                    12,
+                    0.83,
+                    false
+                  );
+                  if (homeMatches.length >= 6) {
+                    const hPairs = matchedPairsToRays(homeMatches, W, H, anchorPose);
+                    const hSolved = solveSO3FromRayPairs(hPairs, R_currFromHome);
+                    if (
+                      hSolved.inlierCount >= 6 &&
+                      hSolved.avgErr < 0.016 &&
+                      rotationAngleBetween(R_currFromHome, hSolved.R) < 0.08
+                    ) {
+                      visualTracker.anchors = visualTracker.homeAnchors.map((a) => ({
+                        ...a,
+                      }));
+                      visualTracker.keyframeWorldR = identityMat3();
+                      visualTracker.lastR = hSolved.R;
+                      visualTracker.lastGoodR = hSolved.R;
+                      visualTracker.smoothedR = hSolved.R;
+                      visualTracker.isOnHomeKeyframe = true;
+                      visualTracker.trackMode = 'home';
+                      visualTracker.lastKeyframeTime = now;
+                      visualTracker.prevGray = gray;
+                      return {
+                        R: hSolved.R,
+                        matchedCount: homeMatches.length,
+                        mode: 'home',
+                      };
+                    }
+                  }
+                }
+
+                const needHandover =
+                  matched.length <= 6 ||
+                  meanOffCenter > 0.32 ||
+                  Math.hypot(
+                    visualTracker.avgShift.dx / W,
+                    visualTracker.avgShift.dy / H
+                  ) > 0.24;
+
+                if (
+                  needHandover &&
+                  solved.inlierCount >= 6 &&
+                  solved.avgErr < 0.015 &&
+                  now - visualTracker.lastKeyframeTime > 320
+                ) {
+                  const nextAnchors = buildCornerAnchorsFromGray(gray, W, H);
+                  if (nextAnchors.length >= 7) {
+                    visualTracker.anchors = nextAnchors;
+                    visualTracker.keyframeWorldR = R_currFromHome;
+                    visualTracker.lastR = identityMat3();
+                    visualTracker.isOnHomeKeyframe = false;
+                    visualTracker.trackMode = 'handover';
+                    visualTracker.lastKeyframeTime = now;
+                    visualTracker.avgShift = { dx: 0, dy: 0 };
+                  }
+                } else {
+                  visualTracker.trackMode = visualTracker.isOnHomeKeyframe
+                    ? 'home'
+                    : 'handover';
+                }
+
+                visualTracker.prevGray = gray;
+                return {
+                  R: R_smooth,
+                  matchedCount: matched.length,
+                  mode: visualTracker.trackMode,
+                };
               }
-            } else {
-              visualTracker.trackMode = visualTracker.isOnHomeKeyframe
-                ? 'home'
-                : 'handover';
-            }
-
-            visualTracker.confidence = Math.min(1, matched.length / 6);
-            visualTracker.prevGray = gray;
-            return {
-              R: R_currFromHome,
-              matchedCount: matched.length,
-              mode: visualTracker.trackMode,
-            };
-          }
-
-          // Fewer than 3 keyframe anchors matched (fast swing or blank wall):
-          // Bridge seamlessly via gyro step delta OR inter-frame optical flow, then re-anchor!
-          let R_next = visualTracker.lastGoodR;
-          if (
-            gyroState.hasReading &&
-            gyroState.currentEarthFromCam &&
-            visualTracker.lastGoodGyro
-          ) {
-            const gStep = computeRelativeGyroMatrix(
-              gyroState.currentEarthFromCam,
-              visualTracker.lastGoodGyro
-            );
-            R_next = orthonormalizeMat3(mat3Mul(gStep, visualTracker.lastGoodR));
-            visualTracker.lastGoodGyro = cloneMat3(gyroState.currentEarthFromCam);
-          } else {
-            const flowDelta = estimateInterframeRotation(
-              visualTracker.prevGray,
-              gray,
-              W,
-              H,
-              anchorPose
-            );
-            if (flowDelta) {
-              R_next = orthonormalizeMat3(mat3Mul(flowDelta, visualTracker.lastGoodR));
             }
           }
 
-          visualTracker.lastGoodR = R_next;
+          // When visual consensus fails (too noisy or occluded), HOLD steady at smoothedR instead of jumping wildly!
           visualTracker.trackMode = 'inertial';
-          visualTracker.confidence = 0.25;
-
-          const freshAnchors = buildCornerAnchorsFromGray(gray, W, H);
-          if (freshAnchors.length >= 5) {
-            visualTracker.anchors = freshAnchors;
-            visualTracker.keyframeWorldR = R_next;
-            visualTracker.keyframeGyro = cloneMat3(gyroState.currentEarthFromCam);
-            visualTracker.lastR = identityMat3();
-            visualTracker.isOnHomeKeyframe = false;
-            visualTracker.lastKeyframeTime = now;
-            visualTracker.avgShift = { dx: 0, dy: 0 };
-          }
-
           visualTracker.prevGray = gray;
-          return { R: R_next, matchedCount: matched.length, mode: 'inertial' };
+          return {
+            R: visualTracker.smoothedR,
+            matchedCount: matched.length,
+            mode: 'inertial',
+          };
         }
 
         let gl = null;
@@ -5544,6 +5571,12 @@
           }
         }
 
+        function positionFloatingActionsAboveDock() {
+          if (!camFloatingActions || !camControlsDock) return;
+          const dockH = camControlsDock.offsetHeight || 0;
+          camFloatingActions.style.bottom = (dockH > 0 ? dockH + 10 : 12) + 'px';
+        }
+
         function syncStepPanels() {
           stepAimPanel.hidden = camState.step !== 'aim';
           stepSetAxisPanel.hidden = camState.step !== 'setAxis';
@@ -5574,6 +5607,7 @@
               camZoomToggleBtn.classList.toggle('is-shifted', zoomedOut);
             }
           }
+          requestAnimationFrame(positionFloatingActionsAboveDock);
         }
 
         function updateCameraScene() {
@@ -5584,6 +5618,7 @@
           renderCameraWebGL();
           renderCameraUiOverlay();
           syncFloatingResetHighlight();
+          positionFloatingActionsAboveDock();
         }
 
         function enterAimStep() {
@@ -5654,18 +5689,26 @@
               camState.frozenZoom < 0.99
                 ? '1:1 等比例缩览中：可看清整张作品落地边界与门/框关系'
                 : '已定格当前画面：可点右侧「缩览全图」看整张，或点「恢复实时环视」';
+          } else if (visualTracker.trackMode === 'imu-vis') {
+            gyroStatusText.textContent = `陀螺仪+视觉锁定`;
+            camBannerHint.textContent =
+              '实时 1:1 空间锁定中：转动手机可环视整张大图，轴出画也不飘移';
+          } else if (visualTracker.trackMode === 'imu') {
+            gyroStatusText.textContent = '陀螺仪空间锁定';
+            camBannerHint.textContent =
+              '陀螺仪全景锁定中：自由转动手机可看清整张 1:1 作品全貌';
           } else if (visualTracker.trackMode === 'home') {
-            gyroStatusText.textContent = `实景锚定 (${visualTracker.matchedCount}点)`;
+            gyroStatusText.textContent = `视觉锁定 (${visualTracker.matchedCount}点)`;
             camBannerHint.textContent =
-              '实时 1:1 空间锁定中：晃动手机可环视整张大图（绿点为基准特征）';
+              '实时 1:1 视觉锁定中：无陀螺仪环境已启用防抖锚定（绿点为基准特征）';
           } else if (visualTracker.trackMode === 'handover') {
-            gyroStatusText.textContent = `接力追踪 (${visualTracker.matchedCount}点)`;
+            gyroStatusText.textContent = `视觉接力 (${visualTracker.matchedCount}点)`;
             camBannerHint.textContent =
-              '已自动接力追踪周围空间：即使 XYZ 轴出画，作品仍稳固留在原地';
+              '视觉接力追踪中：慢速转动手机可环视整张 1:1 作品';
           } else {
-            gyroStatusText.textContent = '快速接力追踪中';
+            gyroStatusText.textContent = '稳定保持当前视角';
             camBannerHint.textContent =
-              '正在通过惯性与光流维持 1:1 空间锚定，慢停即可重新锁定特征';
+              '特征较少已防抖锁定：转回门/柜附近即可恢复连续追踪，或点「定格当前画面」';
           }
         }
 
@@ -5722,6 +5765,14 @@
           const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
           const cssW = Math.max(1, Math.floor(rect.width));
           const cssH = Math.max(1, Math.floor(rect.height));
+          if (
+            cssW === camState.cssW &&
+            cssH === camState.cssH &&
+            dpr === camState.dpr &&
+            arBgCanvas.width === Math.floor(cssW * dpr)
+          ) {
+            return;
+          }
 
           camState.cssW = cssW;
           camState.cssH = cssH;
@@ -5741,6 +5792,13 @@
             redrawFrozenInspectBackground();
           }
           updateCameraScene();
+        }
+
+        if (typeof ResizeObserver !== 'undefined') {
+          const camStageObserver = new ResizeObserver(function () {
+            if (camState.isOpen) resizeCameraCanvases();
+          });
+          camStageObserver.observe(camStage);
         }
 
         function drawCameraBgSource(sourceEl) {
